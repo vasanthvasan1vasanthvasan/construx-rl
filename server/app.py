@@ -4,7 +4,7 @@ from threading import Lock
 from typing import Dict
 import uuid
 
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import Body, FastAPI, HTTPException, Query
 import uvicorn
 
 from construction_safety_env.env import ConstructionSafetyEnv
@@ -89,7 +89,7 @@ def schema() -> SchemaResponse:
 
 
 @app.post("/reset", response_model=ResetResponse)
-def reset(request: ResetRequest) -> ResetResponse:
+def reset(request: ResetRequest = Body(default_factory=ResetRequest)) -> ResetResponse:
     session_id, env = _get_or_create_env(request.session_id)
     observation = env.reset(task_name=request.task_name, seed=request.seed)
     return ResetResponse(session_id=session_id, observation=observation)
