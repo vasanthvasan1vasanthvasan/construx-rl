@@ -1,0 +1,13 @@
+name: construction_site_safety_inspector
+version: "0.1.0"
+description: OpenEnv environment for inspecting construction site reports, identifying OSHA violations, and issuing grounded citations.
+entrypoint: server.app:app
+action: ConstructionSafetyAction
+observation: ConstructionSafetyObservation
+reward: ConstructionSafetyReward
+state: ConstructionSafetyState
+tags:
+  - openenv
+  - construction
+  - safety
+  - osha
