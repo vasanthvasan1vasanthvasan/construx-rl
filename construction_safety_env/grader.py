@@ -9,6 +9,8 @@ from .tasks import InspectionTask, TargetFinding
 
 
 TOKEN_RE = re.compile(r"[a-z0-9]+")
+MIN_TASK_SCORE = 0.01
+MAX_TASK_SCORE = 0.99
 
 
 def _normalize(text: str) -> str:
@@ -114,7 +116,8 @@ def grade_task(
     excess_step_penalty = 0.02 * max(0, steps_used - len(targets) - 1)
     no_submit_penalty = 0.08 if not submitted_final else 0.0
 
-    total_score = max(0.0, min(1.0, round(base_score - duplicate_penalty - hallucination_penalty - excess_step_penalty - no_submit_penalty, 4)))
+    raw_total_score = round(base_score - duplicate_penalty - hallucination_penalty - excess_step_penalty - no_submit_penalty, 4)
+    total_score = max(MIN_TASK_SCORE, min(MAX_TASK_SCORE, raw_total_score))
     per_target_scores = {target.finding_id: 0.0 for target in targets}
     for match in matches:
         per_target_scores[match.target_id] = round(match.score, 4)
