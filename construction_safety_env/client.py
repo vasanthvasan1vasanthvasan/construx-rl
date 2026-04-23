@@ -4,7 +4,7 @@ from typing import Optional
 
 import httpx
 
-from .models import ConstructionSafetyAction, ResetResponse, SchemaResponse, StateResponse, StepResponse
+from .models import ConstructionSafetyAction, Difficulty, ResetResponse, SchemaResponse, StateResponse, StepResponse
 
 
 class ConstructionSafetyEnvClient:
@@ -14,10 +14,10 @@ class ConstructionSafetyEnvClient:
         self._client = httpx.Client(timeout=timeout)
         self.session_id: Optional[str] = None
 
-    def reset(self, task_name: Optional[str] = None, seed: int = 0) -> ResetResponse:
+    def reset(self, task_name: Optional[str] = None, difficulty: Optional[Difficulty] = None, seed: int = 0) -> ResetResponse:
         response = self._client.post(
             f"{self.base_url}/reset",
-            json={"task_name": task_name, "seed": seed, "session_id": self.session_id},
+            json={"task_name": task_name, "difficulty": difficulty, "seed": seed, "session_id": self.session_id},
         )
         response.raise_for_status()
         parsed = ResetResponse.model_validate(response.json())

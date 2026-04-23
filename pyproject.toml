@@ -3,9 +3,9 @@ requires = ["setuptools>=68", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "construction-site-safety-inspector"
-version = "0.1.0"
-description = "OpenEnv-style environment for construction site safety inspection and OSHA citation grading."
+name = "construx-rl"
+version = "0.2.0"
+description = "OpenEnv environment for long-horizon construction management with crews, permits, materials, OSHA safety, weather, and negotiation."
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [

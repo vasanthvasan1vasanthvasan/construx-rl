@@ -1,13 +1,16 @@
-name: construction_site_safety_inspector
-version: "0.1.0"
-description: OpenEnv environment for inspecting construction site reports, identifying OSHA violations, and issuing grounded citations.
+name: construx_rl
+version: "0.2.0"
+description: OpenEnv environment for training LLM construction site managers on long-horizon planning, multi-agent coordination, OSHA safety, permits, materials, weather, budget control, and subcontractor negotiation.
 entrypoint: server.app:app
-action: ConstructionSafetyAction
-observation: ConstructionSafetyObservation
-reward: ConstructionSafetyReward
-state: ConstructionSafetyState
+action: ConstruxAction
+observation: ConstruxObservation
+reward: ConstruxReward
+state: ConstruxState
 tags:
   - openenv
   - construction
   - safety
   - osha
+  - multi-agent
+  - long-horizon
+  - enterprise

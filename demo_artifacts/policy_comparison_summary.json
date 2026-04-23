@@ -1,0 +1,347 @@
+{
+  "important_note": "This is a demo/evaluation artifact, not proof of completed RL training. Use scripts/train_grpo_colab.py for actual GRPO training, then replace heuristic_demo with trained_model.",
+  "average_scores": {
+    "random_baseline": {
+      "easy": 0.04,
+      "medium": 0.093,
+      "hard": 0.08
+    },
+    "heuristic_demo": {
+      "easy": 0.8371,
+      "medium": 0.8152,
+      "hard": 0.804
+    }
+  },
+  "runs": [
+    {
+      "difficulty": "easy",
+      "seed": 0,
+      "success": false,
+      "score": 0.03,
+      "steps": 37,
+      "total_reward": -0.21,
+      "safety_violations": 0,
+      "missing_incident_reports": 0,
+      "policy": "random_baseline"
+    },
+    {
+      "difficulty": "easy",
+      "seed": 1,
+      "success": false,
+      "score": 0.0,
+      "steps": 36,
+      "total_reward": -0.49,
+      "safety_violations": 0,
+      "missing_incident_reports": 0,
+      "policy": "random_baseline"
+    },
+    {
+      "difficulty": "easy",
+      "seed": 2,
+      "success": false,
+      "score": 0.14,
+      "steps": 40,
+      "total_reward": -0.2,
+      "safety_violations": 0,
+      "missing_incident_reports": 0,
+      "policy": "random_baseline"
+    },
+    {
+      "difficulty": "easy",
+      "seed": 3,
+      "success": false,
+      "score": 0.03,
+      "steps": 38,
+      "total_reward": -0.21,
+      "safety_violations": 0,
+      "missing_incident_reports": 0,
+      "policy": "random_baseline"
+    },
+    {
+      "difficulty": "easy",
+      "seed": 4,
+      "success": false,
+      "score": 0.0,
+      "steps": 36,
+      "total_reward": -0.24,
+      "safety_violations": 0,
+      "missing_incident_reports": 0,
+      "policy": "random_baseline"
+    },
+    {
+      "difficulty": "medium",
+      "seed": 0,
+      "success": false,
+      "score": 0.0,
+      "steps": 68,
+      "total_reward": -0.59,
+      "safety_violations": 0,
+      "missing_incident_reports": 0,
+      "policy": "random_baseline"
+    },
+    {
+      "difficulty": "medium",
+      "seed": 1,
+      "success": false,
+      "score": 0.0,
+      "steps": 59,
+      "total_reward": -0.79,
+      "safety_violations": 0,
+      "missing_incident_reports": 0,
+      "policy": "random_baseline"
+    },
+    {
+      "difficulty": "medium",
+      "seed": 2,
+      "success": false,
+      "score": 0.14,
+      "steps": 70,
+      "total_reward": -0.4,
+      "safety_violations": 0,
+      "missing_incident_reports": 0,
+      "policy": "random_baseline"
+    },
+    {
+      "difficulty": "medium",
+      "seed": 3,
+      "success": false,
+      "score": 0.185,
+      "steps": 70,
+      "total_reward": -0.305,
+      "safety_violations": 0,
+      "missing_incident_reports": 0,
+      "policy": "random_baseline"
+    },
+    {
+      "difficulty": "medium",
+      "seed": 4,
+      "success": false,
+      "score": 0.14,
+      "steps": 70,
+      "total_reward": -0.35,
+      "safety_violations": 0,
+      "missing_incident_reports": 0,
+      "policy": "random_baseline"
+    },
+    {
+      "difficulty": "hard",
+      "seed": 0,
+      "success": false,
+      "score": 0.0,
+      "steps": 84,
+      "total_reward": -0.74,
+      "safety_violations": 0,
+      "missing_incident_reports": 0,
+      "policy": "random_baseline"
+    },
+    {
+      "difficulty": "hard",
+      "seed": 1,
+      "success": false,
+      "score": 0.0,
+      "steps": 76,
+      "total_reward": -0.99,
+      "safety_violations": 0,
+      "missing_incident_reports": 0,
+      "policy": "random_baseline"
+    },
+    {
+      "difficulty": "hard",
+      "seed": 2,
+      "success": false,
+      "score": 0.17,
+      "steps": 90,
+      "total_reward": -0.27,
+      "safety_violations": 0,
+      "missing_incident_reports": 0,
+      "policy": "random_baseline"
+    },
+    {
+      "difficulty": "hard",
+      "seed": 3,
+      "success": false,
+      "score": 0.17,
+      "steps": 90,
+      "total_reward": -0.52,
+      "safety_violations": 0,
+      "missing_incident_reports": 0,
+      "policy": "random_baseline"
+    },
+    {
+      "difficulty": "hard",
+      "seed": 4,
+      "success": false,
+      "score": 0.06,
+      "steps": 90,
+      "total_reward": -0.53,
+      "safety_violations": 0,
+      "missing_incident_reports": 0,
+      "policy": "random_baseline"
+    },
+    {
+      "difficulty": "easy",
+      "seed": 0,
+      "success": true,
+      "score": 0.8371,
+      "steps": 10,
+      "total_reward": 1.1971,
+      "safety_violations": 0,
+      "missing_incident_reports": 0,
+      "policy": "heuristic_demo"
+    },
+    {
+      "difficulty": "easy",
+      "seed": 1,
+      "success": true,
+      "score": 0.8371,
+      "steps": 10,
+      "total_reward": 1.1971,
+      "safety_violations": 0,
+      "missing_incident_reports": 0,
+      "policy": "heuristic_demo"
+    },
+    {
+      "difficulty": "easy",
+      "seed": 2,
+      "success": true,
+      "score": 0.8371,
+      "steps": 10,
+      "total_reward": 1.1971,
+      "safety_violations": 0,
+      "missing_incident_reports": 0,
+      "policy": "heuristic_demo"
+    },
+    {
+      "difficulty": "easy",
+      "seed": 3,
+      "success": true,
+      "score": 0.8371,
+      "steps": 10,
+      "total_reward": 1.1971,
+      "safety_violations": 0,
+      "missing_incident_reports": 0,
+      "policy": "heuristic_demo"
+    },
+    {
+      "difficulty": "easy",
+      "seed": 4,
+      "success": true,
+      "score": 0.8371,
+      "steps": 10,
+      "total_reward": 1.1971,
+      "safety_violations": 0,
+      "missing_incident_reports": 0,
+      "policy": "heuristic_demo"
+    },
+    {
+      "difficulty": "medium",
+      "seed": 0,
+      "success": true,
+      "score": 0.8134,
+      "steps": 41,
+      "total_reward": 1.6734,
+      "safety_violations": 0,
+      "missing_incident_reports": 0,
+      "policy": "heuristic_demo"
+    },
+    {
+      "difficulty": "medium",
+      "seed": 1,
+      "success": true,
+      "score": 0.8174,
+      "steps": 33,
+      "total_reward": 1.6774,
+      "safety_violations": 0,
+      "missing_incident_reports": 0,
+      "policy": "heuristic_demo"
+    },
+    {
+      "difficulty": "medium",
+      "seed": 2,
+      "success": true,
+      "score": 0.8165,
+      "steps": 33,
+      "total_reward": 1.6765,
+      "safety_violations": 0,
+      "missing_incident_reports": 0,
+      "policy": "heuristic_demo"
+    },
+    {
+      "difficulty": "medium",
+      "seed": 3,
+      "success": true,
+      "score": 0.8132,
+      "steps": 41,
+      "total_reward": 1.6732,
+      "safety_violations": 0,
+      "missing_incident_reports": 0,
+      "policy": "heuristic_demo"
+    },
+    {
+      "difficulty": "medium",
+      "seed": 4,
+      "success": true,
+      "score": 0.8156,
+      "steps": 38,
+      "total_reward": 1.6756,
+      "safety_violations": 0,
+      "missing_incident_reports": 0,
+      "policy": "heuristic_demo"
+    },
+    {
+      "difficulty": "hard",
+      "seed": 0,
+      "success": true,
+      "score": 0.7854,
+      "steps": 55,
+      "total_reward": 2.1454,
+      "safety_violations": 0,
+      "missing_incident_reports": 0,
+      "policy": "heuristic_demo"
+    },
+    {
+      "difficulty": "hard",
+      "seed": 1,
+      "success": true,
+      "score": 0.8323,
+      "steps": 49,
+      "total_reward": 2.1923,
+      "safety_violations": 0,
+      "missing_incident_reports": 0,
+      "policy": "heuristic_demo"
+    },
+    {
+      "difficulty": "hard",
+      "seed": 2,
+      "success": true,
+      "score": 0.7859,
+      "steps": 53,
+      "total_reward": 2.1459,
+      "safety_violations": 0,
+      "missing_incident_reports": 0,
+      "policy": "heuristic_demo"
+    },
+    {
+      "difficulty": "hard",
+      "seed": 3,
+      "success": true,
+      "score": 0.7852,
+      "steps": 55,
+      "total_reward": 2.1452,
+      "safety_violations": 0,
+      "missing_incident_reports": 0,
+      "policy": "heuristic_demo"
+    },
+    {
+      "difficulty": "hard",
+      "seed": 4,
+      "success": true,
+      "score": 0.8312,
+      "steps": 54,
+      "total_reward": 2.1912,
+      "safety_violations": 0,
+      "missing_incident_reports": 0,
+      "policy": "heuristic_demo"
+    }
+  ]
+}

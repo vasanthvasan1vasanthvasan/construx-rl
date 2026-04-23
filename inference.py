@@ -9,136 +9,88 @@ from openai import OpenAI
 
 from construction_safety_env.client import ConstructionSafetyEnvClient
 from construction_safety_env.env import ConstructionSafetyEnv
-from construction_safety_env.models import ConstructionSafetyAction, FindingSubmission
-from construction_safety_env.tasks import TASKS
+from construction_safety_env.models import ConstruxAction, Difficulty
 
 
-API_BASE_URL = os.getenv("API_BASE_URL", "https://router.huggingface.co/v1")
-MODEL_NAME = os.getenv("MODEL_NAME", "Qwen/Qwen2.5-72B-Instruct")
+API_BASE_URL = os.getenv("API_BASE_URL", "local")
+MODEL_NAME = os.getenv("MODEL_NAME", "Qwen/Qwen2.5-7B-Instruct")
 HF_TOKEN = os.getenv("HF_TOKEN")
-LOCAL_IMAGE_NAME = os.getenv("LOCAL_IMAGE_NAME")
-BENCHMARK = "construction_site_safety_inspector"
-MAX_TOKENS = 450
+BENCHMARK = "construx_rl"
+MAX_TOKENS = 500
 TEMPERATURE = 0.0
 
 
-def _is_local_url(url: Optional[str]) -> bool:
-    if not url:
-        return False
-    hostname = urlparse(url).hostname
-    return hostname in {"127.0.0.1", "localhost", "0.0.0.0"}
+def _is_http_url(url: Optional[str]) -> bool:
+    return bool(url and urlparse(url).scheme in {"http", "https"})
 
 
-def _format_action(action: ConstructionSafetyAction) -> str:
-    if action.action_type == "submit_report":
-        return f"submit_report(summary={((action.final_summary or '')[:60])!r})"
-    assert action.finding is not None
-    return (
-        "issue_finding("
-        f"hazard_label={action.finding.hazard_label!r}, "
-        f"osha_citation={action.finding.osha_citation!r}, "
-        f"severity={action.finding.severity!r})"
-    )
+def _format_action(action: ConstruxAction) -> str:
+    payload = action.model_dump(exclude_none=True)
+    action_type = payload.pop("action_type")
+    args = ", ".join(f"{key}={value!r}" for key, value in payload.items())
+    return f"{action_type}({args})"
 
 
-def _print_start(task_name: str) -> None:
-    print(f"[START] task={task_name} env={BENCHMARK} model={MODEL_NAME}")
+def _print_start(difficulty: str) -> None:
+    print(f"[START] env={BENCHMARK} difficulty={difficulty} model={MODEL_NAME}")
 
 
-def _print_step(step: int, action: ConstructionSafetyAction, reward: float, done: bool, error: Optional[str]) -> None:
+def _print_step(step: int, day: int, action: ConstruxAction, reward: float, done: bool, error: Optional[str]) -> None:
     print(
-        f"[STEP] step={step} action={_format_action(action)} reward={reward:.2f} "
+        f"[STEP] step={step} day={day} action={_format_action(action)} reward={reward:.3f} "
         f"done={'true' if done else 'false'} error={error if error else 'null'}"
     )
 
 
 def _print_end(success: bool, steps: int, score: float, rewards: List[float]) -> None:
-    joined = ",".join(f"{reward:.2f}" for reward in rewards)
-    print(
-        f"[END] success={'true' if success else 'false'} steps={steps} "
-        f"score={score:.2f} rewards={joined}"
-    )
-
-
-def _build_prompt(observation) -> str:
-    references = "\n".join(
-        f"- {ref.citation}: {ref.title}. {ref.summary}" for ref in observation.reference_library
-    )
-    prior = "\n".join(
-        f"- {finding.hazard_label} | {finding.osha_citation} | {finding.severity}"
-        for finding in observation.submitted_findings
-    ) or "- none"
-    return (
-        "You are a construction safety inspector. Read the site report and return JSON only.\n"
-        "Schema:\n"
-        '{"action_type":"issue_finding"|"submit_report","finding":{"hazard_label":"...","osha_citation":"...","severity":"low|medium|high|critical","evidence":"...","corrective_action":"...","confidence":0.0},"final_summary":"..."}\n'
-        "Rules:\n"
-        "- Use exactly one new finding per step or submit_report when finished.\n"
-        "- Only cite hazards explicitly supported by the report.\n"
-        "- Do not repeat prior findings.\n\n"
-        f"Objective: {observation.objective}\n"
-        f"Role: {observation.inspector_role}\n"
-        f"Step: {observation.step_index}/{observation.max_steps}\n"
-        f"Current score: {observation.current_score}\n"
-        f"Previously submitted findings:\n{prior}\n\n"
-        f"Reference library:\n{references}\n\n"
-        f"Site report:\n{observation.site_report}\n"
-    )
-
-
-def _extract_json(text: str) -> dict:
-    text = text.strip()
-    start = text.find("{")
-    end = text.rfind("}")
-    if start == -1 or end == -1 or end <= start:
-        raise ValueError(f"No JSON object found in model response: {text}")
-    return json.loads(text[start : end + 1])
+    reward_text = ",".join(f"{reward:.3f}" for reward in rewards)
+    print(f"[END] success={'true' if success else 'false'} steps={steps} score={score:.3f} rewards={reward_text}")
 
 
 class _LocalEnvAdapter:
-    def __init__(self, task_name: str) -> None:
+    def __init__(self, difficulty: Difficulty) -> None:
         self._env = ConstructionSafetyEnv()
-        self._task_name = task_name
+        self._difficulty = difficulty
 
     def reset(self):
-        class _ResetResult:
+        class Result:
             def __init__(self, observation) -> None:
                 self.observation = observation
 
-        return _ResetResult(self._env.reset(task_name=self._task_name, seed=0))
+        return Result(self._env.reset(difficulty=self._difficulty, seed=0))
 
-    def step(self, action: ConstructionSafetyAction):
+    def step(self, action: ConstruxAction):
         observation, reward, done, info = self._env.step(action)
 
-        class _StepResult:
+        class Result:
             def __init__(self, observation, reward, done, info) -> None:
                 self.observation = observation
                 self.reward = reward
                 self.done = done
                 self.info = info
 
-        return _StepResult(observation, reward, done, info)
+        return Result(observation, reward, done, info)
 
     def state(self):
-        class _StateResult:
+        class Result:
             def __init__(self, state) -> None:
                 self.state = state
 
-        return _StateResult(self._env.state())
+        return Result(self._env.state())
 
     def close(self) -> None:
         self._env.close()
 
 
 class _HttpEnvAdapter:
-    def __init__(self, task_name: str, base_url: str) -> None:
+    def __init__(self, difficulty: Difficulty, base_url: str) -> None:
         self._client = ConstructionSafetyEnvClient(base_url=base_url)
-        self._task_name = task_name
+        self._difficulty = difficulty
 
     def reset(self):
-        return self._client.reset(task_name=self._task_name, seed=0)
+        return self._client.reset(difficulty=self._difficulty, seed=0)
 
-    def step(self, action: ConstructionSafetyAction):
+    def step(self, action: ConstruxAction):
         return self._client.step(action)
 
     def state(self):
@@ -148,145 +100,154 @@ class _HttpEnvAdapter:
         self._client.close()
 
 
-def _make_env_runner(task_name: str):
-    if _is_local_url(API_BASE_URL):
-        return _HttpEnvAdapter(task_name=task_name, base_url=API_BASE_URL)
-    return _LocalEnvAdapter(task_name)
+def _make_env(difficulty: Difficulty):
+    if _is_http_url(API_BASE_URL):
+        return _HttpEnvAdapter(difficulty=difficulty, base_url=API_BASE_URL)
+    return _LocalEnvAdapter(difficulty)
 
 
-def _heuristic_action(observation) -> ConstructionSafetyAction:
-    report = observation.site_report.lower()
-    submitted_citations = {finding.osha_citation for finding in observation.submitted_findings}
-    rules = [
-        (
-            "29 CFR 1926.501(b)(1)",
-            ["roof", "edge", "18 feet", "no guardrails"],
-            FindingSubmission(
-                hazard_label="Unprotected roof edge over 6 feet",
-                osha_citation="29 CFR 1926.501(b)(1)",
-                severity="critical",
-                evidence="Roofers were working at an 18-foot roof edge with no guardrails and no personal fall arrest.",
-                corrective_action="Install guardrails or require personal fall arrest before roof edge work continues.",
-                confidence=0.98,
-            ),
-        ),
-        (
-            "29 CFR 1926.1053(b)(1)",
-            ["ladder", "one foot below", "landing"],
-            FindingSubmission(
-                hazard_label="Access ladder does not extend 3 feet above landing",
-                osha_citation="29 CFR 1926.1053(b)(1)",
-                severity="high",
-                evidence="The extension ladder stopped about one foot below the roof landing instead of extending 3 feet above it.",
-                corrective_action="Extend the ladder rails at least 3 feet above the landing or provide an equivalent grasping device.",
-                confidence=0.95,
-            ),
-        ),
-        (
-            "29 CFR 1926.652(a)(1)",
-            ["7 feet deep", "trench box", "shoring"],
-            FindingSubmission(
-                hazard_label="Excavation lacks cave-in protective system",
-                osha_citation="29 CFR 1926.652(a)(1)",
-                severity="critical",
-                evidence="Employees were in a 7-foot trench with near-vertical walls in disturbed soil and no trench box or shoring.",
-                corrective_action="Use a trench box, shoring, or approved sloping before workers enter the excavation.",
-                confidence=0.99,
-            ),
-        ),
-        (
-            "29 CFR 1926.651(c)(2)",
-            ["only ladder", "north end", "south end"],
-            FindingSubmission(
-                hazard_label="Trench lacks safe egress within 25 feet",
-                osha_citation="29 CFR 1926.651(c)(2)",
-                severity="high",
-                evidence="The only ladder was at the north end, forcing workers at the south end to travel the trench length to exit.",
-                corrective_action="Provide an additional ladder or other safe egress so workers are within 25 feet of an exit.",
-                confidence=0.94,
-            ),
-        ),
-        (
-            "29 CFR 1926.651(j)(2)",
-            ["spoil", "lip of the trench"],
-            FindingSubmission(
-                hazard_label="Spoil pile stored at trench edge",
-                osha_citation="29 CFR 1926.651(j)(2)",
-                severity="medium",
-                evidence="Excavated spoil was piled right along the lip of the trench instead of being kept back from the edge.",
-                corrective_action="Move spoil piles at least 2 feet back from the trench edge or restrain the material from falling in.",
-                confidence=0.93,
-            ),
-        ),
-        (
-            "29 CFR 1926.451(g)(1)",
-            ["supported scaffold", "16 feet", "open ends"],
-            FindingSubmission(
-                hazard_label="Workers on scaffold over 10 feet lack fall protection",
-                osha_citation="29 CFR 1926.451(g)(1)",
-                severity="critical",
-                evidence="Masonry workers were on a supported scaffold about 16 feet above grade with open ends and no visible fall arrest.",
-                corrective_action="Provide compliant scaffold fall protection such as guardrails or required personal fall arrest.",
-                confidence=0.98,
-            ),
-        ),
-        (
-            "29 CFR 1926.451(h)(1)",
-            ["stacked brick", "over the scaffold", "no canopy"],
-            FindingSubmission(
-                hazard_label="Scaffold workers exposed to falling objects from above",
-                osha_citation="29 CFR 1926.451(h)(1)",
-                severity="high",
-                evidence="Brick and buckets were stored above the scaffold and there was no canopy, toeboard, or protected drop zone.",
-                corrective_action="Install toeboards or a canopy and establish a controlled drop zone to protect workers below.",
-                confidence=0.95,
-            ),
-        ),
-        (
-            "29 CFR 1926.501(b)(4)(i)",
-            ["removed a temporary plywood cover", "opening uncovered", "third-floor deck"],
-            FindingSubmission(
-                hazard_label="Uncovered floor opening exposes workers to fall",
-                osha_citation="29 CFR 1926.501(b)(4)(i)",
-                severity="high",
-                evidence="A temporary plywood cover was removed from a third-floor deck opening and the opening was left uncovered near staging activity.",
-                corrective_action="Replace the cover or install guardrails around the opening until the hazard is eliminated.",
-                confidence=0.96,
-            ),
-        ),
-    ]
-    for citation, clues, finding in rules:
-        if citation in submitted_citations:
-            continue
-        if all(clue in report for clue in clues):
-            return ConstructionSafetyAction(action_type="issue_finding", finding=finding)
-    return ConstructionSafetyAction(
-        action_type="submit_report",
-        final_summary="Submitted all clearly supported construction safety hazards from the report.",
+def _build_prompt(observation) -> str:
+    tasks = "\n".join(
+        f"- {task.task_id}: {task.status}, needs crew={task.required_crew}, blocked={task.blocked_reasons}"
+        for task in observation.tasks.values()
+    )
+    permits = ", ".join(f"{name}:{permit.status}" for name, permit in observation.permits.items())
+    weather = ", ".join(
+        f"day {item.day} rain={item.rain_probability} wind={item.wind_mph}" for item in observation.weather_forecast
+    )
+    alerts = "\n".join(f"- {alert.violation_code}: {alert.description}" for alert in observation.osha_alerts) or "- none"
+    return (
+        "You are the Construx-RL construction site manager. Return JSON only matching this schema:\n"
+        '{"action_type":"assign_crew|hold_crew|order_material|check_inventory|check_weather|request_permit|check_permit_status|file_incident_report|request_inspection|request_quote|accept_quote|negotiate", "...":"..."}\n'
+        "Plan dependency-first: permits early, materials three days early, inspect hazardous zones before risky work, avoid rain/crane wind, file incident reports.\n\n"
+        f"Day {observation.day}/{observation.max_days}, budget={observation.remaining_budget}, permits={permits}\n"
+        f"Weather: {weather}\n"
+        f"Inventory: {observation.inventory}\n"
+        f"Tasks:\n{tasks}\n"
+        f"OSHA alerts:\n{alerts}\n"
+        f"Recent site log: {observation.site_log[-5:]}\n"
     )
 
 
-def _llm_action(client: OpenAI, observation) -> ConstructionSafetyAction:
+def _extract_json(text: str) -> dict:
+    start = text.find("{")
+    end = text.rfind("}")
+    if start == -1 or end == -1 or end <= start:
+        raise ValueError(f"No JSON object found: {text}")
+    return json.loads(text[start : end + 1])
+
+
+def _first_available_task(observation, crew_type: str):
+    for task in observation.tasks.values():
+        if task.status == "available" and task.required_crew == crew_type:
+            return task
+    return None
+
+
+def _first_blocked_material_need(observation):
+    for task in observation.tasks.values():
+        if task.status in {"done", "in_progress"}:
+            continue
+        for material, qty in task.required_materials.items():
+            pending = sum(order.quantity for order in observation.pending_orders if order.material == material)
+            if observation.inventory.get(material, 0) + pending < qty:
+                return material, qty
+    return None
+
+
+def _zone_already_inspected(observation, zone: str) -> bool:
+    return zone in observation.inspected_zones
+
+
+def _heuristic_action(observation) -> ConstruxAction:
+    for alert in observation.osha_alerts:
+        if not alert.incident_report_filed:
+            fixes = {
+                "OSHA 1926.502": "Install guardrails or fall arrest before elevated work resumes.",
+                "OSHA 1926.652": "Use shoring or a trench box before excavation entry.",
+                "OSHA 1926.550": "Clear and barricade the crane swing radius and wait for safe wind.",
+                "OSHA 1910.147": "Apply lockout/tagout and de-energize electrical systems.",
+                "OSHA 1926.451": "Inspect and tag scaffolding before the shift.",
+                "OSHA 1926.150": "Place a fire extinguisher within 100 feet before welding.",
+            }
+            return ConstruxAction(
+                action_type="file_incident_report",
+                violation_code=alert.violation_code,
+                crew_id=alert.crew_id,
+                corrective_action=fixes.get(alert.violation_code, "Correct the cited hazard and retrain the crew."),
+            )
+
+    for permit_type, permit in observation.permits.items():
+        if permit.status == "not_requested":
+            return ConstruxAction(action_type="request_permit", permit_type=permit_type)
+
+    need = _first_blocked_material_need(observation)
+    if need:
+        material, qty = need
+        return ConstruxAction(action_type="order_material", material=material, quantity=qty, quality="standard")
+
+    for task in observation.tasks.values():
+        if task.status == "available" and task.osha_rules and task.zone not in {"office", "site"} and not _zone_already_inspected(observation, task.zone):
+            return ConstruxAction(action_type="request_inspection", zone=task.zone)
+
+    for task in observation.tasks.values():
+        if task.status == "available" and task.required_crew == "subcontractor":
+            open_quotes = [quote for quote in observation.subcontractor_quotes.values() if quote.task_id == task.task_id and quote.status == "open"]
+            if not open_quotes:
+                subcontractor = "weldco" if task.task_id == "welding_stair_rails" else "rapid_roof"
+                return ConstruxAction(action_type="request_quote", subcontractor_id=subcontractor, task_id=task.task_id)
+            quote = open_quotes[0]
+            if quote.available_day <= observation.day:
+                return ConstruxAction(action_type="accept_quote", quote_id=quote.quote_id)
+            for crew in observation.crews.values():
+                if crew.status in {"available", "held"}:
+                    return ConstruxAction(action_type="hold_crew", crew_id=crew.crew_id, reason="Waiting for subcontractor availability.")
+
+    if observation.weather_forecast and (
+        observation.weather_forecast[0].rain_probability >= 0.35 or observation.weather_forecast[0].wind_mph > 22
+    ):
+        checked_today = any(f"Day {observation.day}: weather checked" in line for line in observation.site_log)
+        if not checked_today:
+            return ConstruxAction(action_type="check_weather")
+        for crew in observation.crews.values():
+            if crew.status in {"available", "held"}:
+                return ConstruxAction(action_type="hold_crew", crew_id=crew.crew_id, reason="Waiting for safer weather.")
+
+    for crew in observation.crews.values():
+        if crew.status == "assigned" and crew.assigned_task:
+            return ConstruxAction(action_type="assign_crew", crew_id=crew.crew_id, task_id=crew.assigned_task)
+
+    for crew in observation.crews.values():
+        task = _first_available_task(observation, crew.crew_type)
+        if task:
+            return ConstruxAction(action_type="assign_crew", crew_id=crew.crew_id, task_id=task.task_id)
+
+    for crew in observation.crews.values():
+        if crew.status == "available":
+            return ConstruxAction(action_type="hold_crew", crew_id=crew.crew_id, reason="Waiting for dependency, permit, material, weather, or subcontractor availability.")
+
+    return ConstruxAction(action_type="check_inventory")
+
+
+def _llm_action(client: OpenAI, observation) -> ConstruxAction:
     response = client.chat.completions.create(
         model=MODEL_NAME,
         temperature=TEMPERATURE,
         max_tokens=MAX_TOKENS,
         messages=[
-            {"role": "system", "content": "You are a careful OSHA-aware construction safety inspector. Return JSON only."},
+            {"role": "system", "content": "You are a careful construction site manager. Return JSON only."},
             {"role": "user", "content": _build_prompt(observation)},
         ],
     )
-    content = response.choices[0].message.content or ""
-    payload = _extract_json(content)
-    return ConstructionSafetyAction.model_validate(payload)
+    payload = _extract_json(response.choices[0].message.content or "")
+    return ConstruxAction.model_validate(payload)
 
 
-def run_episode(task_name: str, client: Optional[OpenAI]) -> dict:
-    env = _make_env_runner(task_name)
+def run_episode(difficulty: Difficulty, client: Optional[OpenAI]) -> dict:
+    env = _make_env(difficulty)
     observation = env.reset().observation
     rewards: List[float] = []
-    _print_start(task_name)
-
+    _print_start(difficulty)
     try:
         while not observation.done:
             try:
@@ -295,27 +256,21 @@ def run_episode(task_name: str, client: Optional[OpenAI]) -> dict:
                 action = _heuristic_action(observation)
             result = env.step(action)
             observation = result.observation
-            reward = result.reward
-            done = result.done
-            rewards.append(reward.value)
-            _print_step(observation.step_index, action, reward.value, done, observation.last_action_error)
-            if done:
+            rewards.append(result.reward.value)
+            _print_step(observation.step_index, observation.day, action, result.reward.value, result.done, observation.last_action_error)
+            if result.done:
                 break
     finally:
-        state_result = env.state()
-        score = state_result.state.current_score if hasattr(state_result, "state") else state_result.current_score
-        _print_end(score >= 0.85, len(rewards), score, rewards)
+        state = env.state().state
+        _print_end(state.success, len(rewards), state.current_score, rewards)
         env.close()
-
-    return {"score": score, "steps": float(len(rewards))}
+    return {"score": state.current_score, "steps": len(rewards), "success": state.success}
 
 
 def main() -> None:
-    client = None
-    if HF_TOKEN and not _is_local_url(API_BASE_URL):
-        client = OpenAI(base_url=API_BASE_URL, api_key=HF_TOKEN)
-    for task_name in TASKS:
-        run_episode(task_name, client)
+    client = OpenAI(base_url=API_BASE_URL, api_key=HF_TOKEN) if HF_TOKEN and _is_http_url(API_BASE_URL) else None
+    for difficulty in ("easy", "medium", "hard"):
+        run_episode(difficulty, client)
 
 
 if __name__ == "__main__":

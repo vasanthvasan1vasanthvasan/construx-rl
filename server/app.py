@@ -24,9 +24,9 @@ from construction_safety_env.tasks import list_tasks
 
 
 app = FastAPI(
-    title="Construction Site Safety Inspector",
-    description="OpenEnv-style environment for construction safety inspection with OSHA-grounded grading.",
-    version="0.1.0",
+    title="Construx-RL",
+    description="OpenEnv environment where an LLM acts as a construction site manager across permits, materials, crews, weather, OSHA safety, budget, and subcontractor negotiation.",
+    version="0.2.0",
 )
 
 _sessions: Dict[str, ConstructionSafetyEnv] = {}
@@ -55,7 +55,7 @@ def _get_session(session_id: str) -> ConstructionSafetyEnv:
 @app.get("/")
 def root() -> dict:
     return {
-        "name": "construction_site_safety_inspector",
+        "name": "construx_rl",
         "tag": "openenv",
         "status": "ok",
         "tasks": [task.model_dump() for task in list_tasks()],
@@ -91,7 +91,7 @@ def schema() -> SchemaResponse:
 @app.post("/reset", response_model=ResetResponse)
 def reset(request: ResetRequest = Body(default_factory=ResetRequest)) -> ResetResponse:
     session_id, env = _get_or_create_env(request.session_id)
-    observation = env.reset(task_name=request.task_name, seed=request.seed)
+    observation = env.reset(difficulty=request.difficulty, task_name=request.task_name, seed=request.seed)
     return ResetResponse(session_id=session_id, observation=observation)
 
 

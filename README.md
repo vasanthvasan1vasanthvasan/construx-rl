@@ -1,223 +1,157 @@
 ---
-title: Construction Site Safety Inspector
+title: Construx-RL
 sdk: docker
 app_port: 7860
 tags:
   - openenv
+  - reinforcement-learning
   - construction
-  - safety
+  - multi-agent
+  - long-horizon
+  - enterprise
+  - osha
 ---
 
-# Construction Site Safety Inspector
+# Construx-RL
 
-`construction_site_safety_inspector` is an OpenEnv-style benchmark for a real job humans actually do: reading construction site reports, identifying safety violations, and issuing the right OSHA citations with practical abatement guidance.
+Construx-RL is an OpenEnv reinforcement learning environment where an LLM acts as a construction site manager. The agent must deliver a building project across permits, material lead times, weather, OSHA safety rules, budget pressure, crew coordination, and subcontractor negotiation.
 
-The environment is designed for agent training and evaluation in safety-heavy operational work. Instead of solving a toy task, the agent has to interpret messy natural-language reports, separate overlapping hazards, pick the correct OSHA rule, and avoid inventing unsupported citations.
+The core failure mode we target is familiar: LLMs can produce confident plans that violate physical dependencies, ignore delayed approvals, miss safety constraints, or spend the budget into failure. Construx-RL turns those mistakes into deterministic environment feedback.
 
-## Why this environment is useful
+## Hackathon Themes
 
-Construction safety inspection is a strong real-world agent domain because:
+- Theme 1, Multi-Agent Interactions: structural, MEP, finishing, admin, and subcontractor agents have different constraints, costs, availability, and rejection behavior.
+- Theme 2, Long-Horizon Planning: the hard scenario runs across 30 simulated days, with permits taking 2-3 days and materials arriving 3 days after ordering.
+- Theme 3.1, Professional World Modeling: the agent interacts with permits, inventory, weather, budget, inspections, OSHA incidents, and quote negotiation.
+- Theme 4, Self-Improvement: episode memory and curriculum difficulty are built in; easy unlocks medium, then hard as rewards improve.
 
-- Site observations arrive as natural-language narratives, not clean labels.
-- The agent must map evidence to formal standards.
-- Partial progress matters. Finding one real hazard is valuable even if the report is incomplete.
-- Wrong or hallucinated citations should be penalized, not rewarded.
+## Scenarios
 
-This environment models those constraints with deterministic graders backed by official OSHA construction standards.
+- Easy: 5 tasks, one zone, one building permit, stable weather, basic OSHA and material timing.
+- Medium: 10 tasks, 4 zones, weather disruption, 3 permits, supply planning, and MEP/roof coordination.
+- Hard: 15 tasks, 5 zones, 30 simulated days, random weather, OSHA events, subcontractor welding, budget pressure, and final inspection.
 
-## Task set
+## Environment API
 
-There are three graded tasks with increasing difficulty:
+The environment exposes OpenEnv-style `reset()`, `step(action)`, and `state()` methods through both Python and FastAPI.
 
-1. `easy_roof_fall_protection`
-   Residential roofing report with two obvious hazards: fall protection at an 18-foot roof edge and improper ladder extension.
-2. `medium_trench_excavation_control`
-   Utility trench report with three interacting excavation hazards: missing cave-in protection, inadequate egress, and spoil piles at the edge.
-3. `hard_scaffold_multi_hazard`
-   Mixed scaffold and interior work report with multiple simultaneous fall hazards: missing scaffold fall protection, falling-object exposure, and an uncovered floor opening.
-
-## OSHA rules encoded in the grader
-
-The tasks use official OSHA construction rules as the grading backbone:
-
-- `29 CFR 1926.501(b)(1)` unprotected sides and edges
-- `29 CFR 1926.501(b)(4)(i)` floor holes
-- `29 CFR 1926.1053(b)(1)` ladder side rails at upper landing
-- `29 CFR 1926.651(c)(2)` trench egress within 25 feet
-- `29 CFR 1926.651(j)(2)` spoil piles at least 2 feet from excavation edge
-- `29 CFR 1926.652(a)(1)` excavation cave-in protection
-- `29 CFR 1926.451(g)(1)` scaffold fall protection above 10 feet
-- `29 CFR 1926.451(h)(1)` scaffold falling object protection
-
-Official sources:
-
-- https://www.osha.gov/laws-regs/regulations/standardnumber/1926/1926.501
-- https://www.osha.gov/laws-regs/regulations/standardnumber/1926/1926.1053
-- https://www.osha.gov/laws-regs/regulations/standardnumber/1926/1926.651
-- https://www.osha.gov/laws-regs/regulations/standardnumber/1926/1926.652
-- https://www.osha.gov/laws-regs/regulations/standardnumber/1926/1926.451
-
-## API design
-
-The environment exposes standard `reset()`, `step()`, and `state()` methods through the Python environment class and HTTP endpoints.
-
-### Action space
-
-Typed Pydantic action model: `ConstructionSafetyAction`
-
-- `action_type="issue_finding"`
-  Submit one hazard finding with:
-  `hazard_label`, `osha_citation`, `severity`, `evidence`, `corrective_action`, `confidence`
-- `action_type="submit_report"`
-  End the episode and trigger final grading
-
-### Observation space
-
-Typed Pydantic observation model: `ConstructionSafetyObservation`
-
-Each observation includes:
-
-- task metadata and difficulty
-- inspector role and objective
-- full site report text
-- OSHA reference library available to the agent
-- submitted findings so far
-- feedback history from the deterministic grader
-- current score, best score, step count, and final/done flag
-- `last_action_error` for malformed or stale actions
-
-### State space
-
-Typed Pydantic state model: `ConstructionSafetyState`
-
-The full internal state includes:
-
-- current submitted findings and feedback history
-- hidden target finding IDs
-- current and best deterministic score
-- step counters and done status
-
-## Reward shaping
-
-The reward is meaningful across the whole trajectory, not just at the end.
-
-- Each `issue_finding` action is scored against the hidden target hazards.
-- The step reward is the positive score gain from that action.
-- Correct partial findings receive partial credit.
-- Duplicate, hallucinated, and low-quality findings fail to increase reward.
-- Final score includes penalties for excess steps, unmatched submissions, and duplicate findings.
-
-This gives the agent dense signal while still preserving a deterministic final grader in the `[0.0, 1.0]` range.
-
-## Project layout
+Action types:
 
 ```text
-.
-├── construction_safety_env/
-│   ├── client.py
-│   ├── env.py
-│   ├── grader.py
-│   ├── models.py
-│   └── tasks.py
-├── server/
-│   └── app.py
-├── Dockerfile
-├── inference.py
-├── openenv.yaml
-├── README.md
-├── requirements.txt
-└── scripts/
-    └── validate-submission.sh
+assign_crew
+hold_crew
+order_material
+check_inventory
+check_weather
+request_permit
+check_permit_status
+file_incident_report
+request_inspection
+request_quote
+accept_quote
+negotiate
 ```
 
-## Local setup
+Observation includes:
+
+- current day, max days, remaining budget
+- full task DAG status and blocked reasons
+- crew availability and assignments
+- 3-day weather forecast
+- inventory and pending material order ETAs
+- permit status
+- inspected zones
+- active OSHA alerts and incident report status
+- subcontractor quotes
+- compressed site log and cross-episode memory hint
+
+## Hard Rules
+
+- Walls/framing cannot start before foundation cure.
+- Concrete cannot be poured in unsafe rain.
+- Crane work is blocked above 25 mph wind.
+- Roof and rough-in gate interior work.
+- Materials arrive 3 days after ordering.
+- No work starts without required approved permit.
+- Budget reaching zero fails the project.
+
+OSHA rules encoded:
+
+- `OSHA 1926.502`: fall protection above 6 feet
+- `OSHA 1926.652`: shoring for excavations deeper than 5 feet
+- `OSHA 1926.550`: crane swing radius and unsafe crane conditions
+- `OSHA 1910.147`: lockout/tagout for electrical work
+- `OSHA 1926.100`: hard hats in active zones
+- `OSHA 1926.451`: scaffold inspection
+- `OSHA 1926.150`: fire extinguisher for welding
+- `OSHA 1926.32`: valid permit requirement
+
+## Reward Functions
+
+Construx-RL reports independent reward components:
+
+- Progress: `+0.1` per task completed in dependency-valid order.
+- Budget efficiency: remaining budget divided by starting budget at completion.
+- Safety: `-0.5` per OSHA violation, `-0.3` per missing incident report, `+0.3` for zero-incident completion.
+- Schedule: `+0.5` if completed before day 28, `+0.2` if completed day 28-30.
+- Anti-hack checks: penalties for invalid actions, budget failure, and timeout.
+
+## Run Locally
 
 ```bash
-python -m venv .venv
-source .venv/bin/activate
 pip install -r requirements.txt
+python inference.py
 ```
 
-Run the API server:
+Run the server:
 
 ```bash
 uvicorn server.app:app --host 0.0.0.0 --port 7860
 ```
 
-Smoke test:
+Then call:
 
 ```bash
 curl http://127.0.0.1:7860/health
-curl http://127.0.0.1:7860/healthz
-curl http://127.0.0.1:7860/tasks
+curl http://127.0.0.1:7860/schema
 ```
 
-## Docker
+## Demo Trace
 
-Build and run locally:
+`inference.py` prints the required format:
 
-```bash
-docker build -t construction-safety-env .
-docker run --rm -p 7860:7860 construction-safety-env
+```text
+[START] env=construx_rl difficulty=hard model=Qwen/Qwen2.5-7B-Instruct
+[STEP] step=1 day=1 action=request_permit(permit_type='building') reward=0.000 done=false error=null
+[END] success=true steps=55 score=0.755 rewards=...
 ```
 
-The container exposes the FastAPI app on port `7860`, which matches Hugging Face Spaces container expectations.
+The included heuristic baseline is intentionally simple but completes all three scenarios, giving you a reproducible demo and a sanity check for reward curves.
 
-## Hugging Face Spaces deployment
+## Training
 
-This repository is ready for a Docker Space:
+The Colab-oriented training skeleton is in:
 
-1. Create a new Hugging Face Space with SDK `Docker`.
-2. Push this repository.
-3. Add the `openenv` tag in the Space metadata.
-4. Set any optional environment variables for baseline inference: `API_BASE_URL`, `MODEL_NAME`, `HF_TOKEN`.
-
-The root endpoint returns `200`, and `POST /reset` creates a live environment session suitable for validator pings.
-
-## Baseline inference
-
-The required inference script is at the repository root.
-
-Environment variables:
-
-- `API_BASE_URL`
-- `MODEL_NAME`
-- `HF_TOKEN`
-
-The script:
-
-- uses the OpenAI client for model calls when credentials are present
-- falls back to a deterministic heuristic inspector for local smoke testing
-- emits strict `[START]`, `[STEP]`, and `[END]` logs per task
-- runs all three tasks in sequence
-
-Example:
-
-```bash
-export API_BASE_URL="https://router.huggingface.co/v1"
-export MODEL_NAME="Qwen/Qwen2.5-72B-Instruct"
-export HF_TOKEN="..."
-python inference.py
+```text
+scripts/train_grpo_colab.py
 ```
 
-## Expected baseline behavior
+It uses:
 
-With the built-in heuristic fallback, the environment is designed to produce near-perfect deterministic scores on all three tasks because the scripted policy captures the benchmark's intended solution path.
+- OpenEnv-compatible environment loop
+- TRL `GRPOTrainer`
+- Unsloth 4-bit loading and LoRA
+- Qwen2.5-7B-Instruct
+- verifier-style reward from the actual Construx-RL environment
 
-Expected heuristic scores:
+For the hackathon Colab, install the package from the Hugging Face Space repo, then run the script cells after adding your HF/W&B credentials.
 
-- `easy_roof_fall_protection`: `0.93`
-- `medium_trench_excavation_control`: `0.93`
-- `hard_scaffold_multi_hazard`: `0.93`
-- average: `0.93`
+## Deployment
 
-LLM scores depend on the selected remote model, but the prompt and reward shaping are deterministic.
+This repo is ready for Hugging Face Spaces with Docker:
 
-## Validation checklist
+- `Dockerfile`
+- `openenv.yaml`
+- `server/app.py`
 
-- `openenv.yaml` included at repo root
-- typed action, observation, reward, and state models implemented with Pydantic
-- `step()`, `reset()`, and `state()` implemented in `construction_safety_env/env.py`
-- root `inference.py` uses the OpenAI client and required environment variables
-- containerized `Dockerfile` for local and HF Spaces deployment
-- optional local validator included at `scripts/validate-submission.sh`
+The Space exposes `/reset`, `/step`, `/state`, `/schema`, `/tasks`, `/health`, and `/healthz`.

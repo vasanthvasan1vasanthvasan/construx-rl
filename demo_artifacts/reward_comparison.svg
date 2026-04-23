@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="560" viewBox="0 0 960 560">
+  <rect width="100%" height="100%" fill="#fbfaf6" />
+  <text x="92" y="48" font-size="28" font-weight="700" font-family="Arial, sans-serif">Construx-RL Reward Comparison</text>
+  <text x="92" y="78" font-size="15" font-family="Arial, sans-serif" fill="#444">Evaluation artifact: random actions vs deterministic demo policy. Replace demo policy with trained model after GRPO.</text>
+  <line x1="92" y1="478" x2="908" y2="478" stroke="#333" stroke-width="1.5" />
+  <line x1="92" y1="118" x2="92" y2="478" stroke="#333" stroke-width="1.5" />
+  <line x1="92" y1="118" x2="908" y2="118" stroke="#ddd" />
+  <line x1="92" y1="298.0" x2="908" y2="298.0" stroke="#e6e1d8" />
+  <text x="48" y="123" font-size="14" font-family="Arial, sans-serif">1.0</text>
+  <text x="48" y="303.0" font-size="14" font-family="Arial, sans-serif">0.5</text>
+  <text x="48" y="483" font-size="14" font-family="Arial, sans-serif">0.0</text>
+  <text x="22" y="298.0" transform="rotate(-90 22 298.0)" text-anchor="middle" font-size="14" font-family="Arial, sans-serif" fill="#444">Average score</text>
+  <rect x="146" y="464" width="64" height="14" rx="2" fill="#b44d68" /><rect x="222" y="177" width="64" height="301" rx="2" fill="#237a71" /><rect x="354" y="445" width="64" height="33" rx="2" fill="#b44d68" /><rect x="430" y="185" width="64" height="293" rx="2" fill="#237a71" /><rect x="562" y="450" width="64" height="28" rx="2" fill="#b44d68" /><rect x="638" y="189" width="64" height="289" rx="2" fill="#237a71" />
+  <text x="178.0" y="452" text-anchor="middle" font-size="15" font-weight="600">0.04</text><text x="254.0" y="165" text-anchor="middle" font-size="15" font-weight="600">0.84</text><text x="216" y="526" text-anchor="middle" font-size="17" font-weight="600">Easy</text><text x="386.0" y="433" text-anchor="middle" font-size="15" font-weight="600">0.09</text><text x="462.0" y="173" text-anchor="middle" font-size="15" font-weight="600">0.82</text><text x="424" y="526" text-anchor="middle" font-size="17" font-weight="600">Medium</text><text x="594.0" y="438" text-anchor="middle" font-size="15" font-weight="600">0.08</text><text x="670.0" y="177" text-anchor="middle" font-size="15" font-weight="600">0.80</text><text x="632" y="526" text-anchor="middle" font-size="17" font-weight="600">Hard</text>
+  <rect x="690" y="38" width="18" height="18" rx="2" fill="#b44d68" /><text x="718" y="53" font-size="16">Random baseline</text><rect x="690" y="68" width="18" height="18" rx="2" fill="#237a71" /><text x="718" y="83" font-size="16">Demo policy</text>
+</svg>

@@ -1,18 +1,29 @@
 from __future__ import annotations
 
-import random
 import uuid
 from typing import Any, Dict, Optional, Tuple
 
-from .grader import grade_task
-from .models import (
-    ConstructionSafetyAction,
-    ConstructionSafetyObservation,
-    ConstructionSafetyReward,
-    ConstructionSafetyState,
-    FindingFeedback,
-)
-from .tasks import TASKS, get_task
+from .curriculum import GLOBAL_CURRICULUM
+from .grader import score_world, step_reward
+from .memory import GLOBAL_MEMORY
+from .models import ConstruxAction, ConstruxObservation, ConstruxReward, ConstruxState, Difficulty
+from .world import ConstructionWorld
+
+
+ALLOWED_ACTIONS = [
+    "assign_crew",
+    "hold_crew",
+    "order_material",
+    "check_inventory",
+    "check_weather",
+    "request_permit",
+    "check_permit_status",
+    "file_incident_report",
+    "request_inspection",
+    "request_quote",
+    "accept_quote",
+    "negotiate",
+]
 
 
 class ConstructionSafetyEnv:
@@ -20,162 +31,118 @@ class ConstructionSafetyEnv:
 
     def __init__(self) -> None:
         self.session_id = str(uuid.uuid4())
-        self._rng = random.Random(0)
-        self._task = None
-        self._submitted_findings = []
-        self._feedback_history = []
-        self._done = False
-        self._step_index = 0
-        self._best_score = 0.0
-        self._current_score = 0.0
-        self._last_action_error: Optional[str] = None
-        self._last_reward: Optional[ConstructionSafetyReward] = None
+        self._world: Optional[ConstructionWorld] = None
+        self._last_reward: Optional[ConstruxReward] = None
         self._last_info: Dict[str, Any] = {}
-        self._submitted_final = False
-
-    def reset(self, task_name: Optional[str] = None, seed: int = 0) -> ConstructionSafetyObservation:
-        self._rng = random.Random(seed)
-        if task_name is None:
-            task_name = self._rng.choice(sorted(TASKS))
-        self._task = get_task(task_name)
-        self._submitted_findings = []
-        self._feedback_history = []
-        self._done = False
-        self._step_index = 0
-        self._best_score = 0.0
         self._current_score = 0.0
-        self._last_action_error = None
+        self._reward_components: Dict[str, float] = {}
+
+    def reset(
+        self,
+        difficulty: Optional[Difficulty] = None,
+        task_name: Optional[str] = None,
+        seed: int = 0,
+    ) -> ConstruxObservation:
+        requested = difficulty or self._difficulty_from_task_name(task_name)
+        chosen = GLOBAL_CURRICULUM.choose(requested)
+        self._world = ConstructionWorld(chosen, seed=seed, memory_hint=GLOBAL_MEMORY.hint())
+        self._current_score = score_world(self._world)
+        self._reward_components = {}
         self._last_reward = None
-        self._last_info = {"task_loaded": True}
-        self._submitted_final = False
+        self._last_info = {"scenario_loaded": chosen}
         return self._build_observation()
 
-    def state(self) -> ConstructionSafetyState:
-        self._ensure_task_loaded()
-        assert self._task is not None
-        return ConstructionSafetyState(
+    def state(self) -> ConstruxState:
+        world = self._ensure_world()
+        return ConstruxState(
             session_id=self.session_id,
-            task_name=self._task.descriptor.name,
-            difficulty=self._task.descriptor.difficulty,
-            step_index=self._step_index,
-            max_steps=self._task.max_steps,
-            done=self._done,
-            best_score=self._best_score,
+            difficulty=world.difficulty,
+            day=world.day,
+            max_days=world.max_days,
+            step_index=world.step_index,
+            max_steps=world.max_steps,
+            done=world.done,
+            success=world.success,
             current_score=self._current_score,
-            submitted_findings=list(self._submitted_findings),
-            feedback_history=list(self._feedback_history),
-            target_finding_ids=[finding.finding_id for finding in self._task.target_findings],
-            target_count=len(self._task.target_findings),
-            last_action_error=self._last_action_error,
-            metadata={"grading_notes": self._task.grading_notes},
+            completed_tasks=world.completed_tasks(),
+            failed_tasks=world.failed_tasks(),
+            remaining_budget=world.budget,
+            safety_violations=world.safety_violations(),
+            missing_incident_reports=world.missing_reports(),
+            reward_components=dict(self._reward_components),
+            site_log=list(world.site_log),
+            metadata={
+                "curriculum_difficulty": GLOBAL_CURRICULUM.difficulty,
+                "task_count": len(world.tasks),
+                "open_quotes": list(world.quotes),
+            },
         )
 
-    def step(
-        self, action: ConstructionSafetyAction
-    ) -> Tuple[ConstructionSafetyObservation, ConstructionSafetyReward, bool, Dict[str, Any]]:
-        self._ensure_task_loaded()
-        assert self._task is not None
-
-        if self._done:
-            reward = ConstructionSafetyReward(value=0.0, reason="Episode already finished.", components={"stale_action": 0.0})
+    def step(self, action: ConstruxAction) -> Tuple[ConstruxObservation, ConstruxReward, bool, Dict[str, Any]]:
+        world = self._ensure_world()
+        if world.done:
+            reward = ConstruxReward(value=0.0, reason="Episode already finished.", components={"stale_action": 0.0})
             info = {"error": "Episode already finished."}
-            self._last_action_error = info["error"]
             self._last_reward = reward
             self._last_info = info
             return self._build_observation(), reward, True, info
 
-        self._step_index += 1
-        previous_best = self._best_score
-        self._last_action_error = None
+        before_score = self._current_score
+        payload = action.model_dump(exclude={"action_type"}, exclude_none=True)
+        info = world.apply(action.action_type, payload)
+        after_score = score_world(world)
+        value, reason, components = step_reward(before_score, after_score, world, info)
+        self._current_score = after_score
+        self._reward_components = components
 
-        if action.action_type == "issue_finding":
-            if action.finding is None:
-                reward = ConstructionSafetyReward(value=0.0, reason="Missing finding payload.", components={"validation": 0.0})
-                info = {"error": "issue_finding requires a finding payload"}
-                self._last_action_error = info["error"]
-            else:
-                self._submitted_findings.append(action.finding)
-                evaluation = grade_task(self._task, self._submitted_findings, steps_used=self._step_index, submitted_final=False)
-                self._current_score = float(evaluation["score"])
-                self._best_score = max(self._best_score, self._current_score)
-                score_delta = max(0.0, round(self._best_score - previous_best, 4))
-                self._feedback_history.append(
-                    FindingFeedback(
-                        hazard_label=action.finding.hazard_label,
-                        accepted=score_delta > 0.0,
-                        score_delta=score_delta,
-                        notes="Finding improved task score." if score_delta > 0.0 else "Finding did not improve score; likely duplicate, weak evidence, or incorrect citation.",
-                    )
-                )
-                reward = ConstructionSafetyReward(
-                    value=score_delta,
-                    reason="Incremental progress reward based on deterministic grader gain.",
-                    components={"score_delta": score_delta, "current_score": self._current_score, "best_score": self._best_score},
-                )
-                info = evaluation
-        elif action.action_type == "submit_report":
-            self._submitted_final = True
-            evaluation = grade_task(self._task, self._submitted_findings, steps_used=self._step_index, submitted_final=True)
-            self._current_score = float(evaluation["score"])
-            self._best_score = max(self._best_score, self._current_score)
-            reward = ConstructionSafetyReward(
-                value=max(0.0, round(self._current_score - previous_best, 4)),
-                reason="Final report reward after deterministic grading.",
-                components={
-                    "final_score": self._current_score,
-                    "matched_count": float(evaluation["matched_count"]),
-                    "target_count": float(evaluation["target_count"]),
-                },
-            )
-            info = evaluation
-            self._done = True
-        else:
-            reward = ConstructionSafetyReward(value=0.0, reason="Unsupported action.", components={"validation": 0.0})
-            info = {"error": f"Unsupported action type: {action.action_type}"}
-            self._last_action_error = info["error"]
-
-        if self._step_index >= self._task.max_steps and not self._done:
-            evaluation = grade_task(self._task, self._submitted_findings, steps_used=self._step_index, submitted_final=self._submitted_final)
-            self._current_score = float(evaluation["score"])
-            self._best_score = max(self._best_score, self._current_score)
-            self._done = True
-            info = {**evaluation, "auto_terminated": True, "error": self._last_action_error}
-            reward = ConstructionSafetyReward(
-                value=max(reward.value, max(0.0, round(self._current_score - previous_best, 4))),
-                reason="Episode reached maximum steps.",
-                components={**reward.components, "final_score": self._current_score},
-            )
-
+        reward = ConstruxReward(value=value, reason=reason, components=components)
+        if world.done:
+            GLOBAL_CURRICULUM.record(after_score)
+            GLOBAL_MEMORY.add_episode(world.site_log, components)
         self._last_reward = reward
         self._last_info = info
-        return self._build_observation(), reward, self._done, info
+        return self._build_observation(), reward, world.done, info
 
     def close(self) -> None:
         return None
 
-    def _ensure_task_loaded(self) -> None:
-        if self._task is None:
-            self.reset(task_name="easy_roof_fall_protection", seed=0)
+    def _ensure_world(self) -> ConstructionWorld:
+        if self._world is None:
+            self.reset(difficulty="easy", seed=0)
+        assert self._world is not None
+        return self._world
 
-    def _build_observation(self) -> ConstructionSafetyObservation:
-        self._ensure_task_loaded()
-        assert self._task is not None
-        return ConstructionSafetyObservation(
-            task_name=self._task.descriptor.name,
-            difficulty=self._task.descriptor.difficulty,
-            inspector_role=self._task.inspector_role,
-            site_report=self._task.site_report,
-            objective=self._task.objective,
-            allowed_actions=["issue_finding", "submit_report"],
-            reference_library=self._task.references,
-            submitted_findings=list(self._submitted_findings),
-            feedback_history=list(self._feedback_history),
-            step_index=self._step_index,
-            max_steps=self._task.max_steps,
-            done=self._done,
+    def _build_observation(self) -> ConstruxObservation:
+        world = self._ensure_world()
+        return ConstruxObservation(
+            difficulty=world.difficulty,
+            day=world.day,
+            max_days=world.max_days,
+            remaining_budget=world.budget,
+            starting_budget=world.scenario.starting_budget,
+            tasks=world.task_snapshots(),
+            crews=world.crew_snapshots(),
+            weather_forecast=world.weather_forecast(),
+            inventory=dict(world.inventory),
+            pending_orders=list(world.pending_orders),
+            permits=dict(world.permits),
+            inspected_zones=dict(world.inspected_zones),
+            osha_alerts=list(world.alerts),
+            subcontractor_quotes=dict(world.quotes),
+            site_log=list(world.site_log[-12:]),
+            memory_hint=world.memory_hint,
+            allowed_actions=ALLOWED_ACTIONS,
+            step_index=world.step_index,
+            max_steps=world.max_steps,
+            done=world.done,
             current_score=self._current_score,
-            best_score=self._best_score,
-            last_action_error=self._last_action_error,
+            last_action_error=world.last_error,
             last_reward=self._last_reward,
             last_info=dict(self._last_info),
         )
+
+    @staticmethod
+    def _difficulty_from_task_name(task_name: Optional[str]) -> Optional[Difficulty]:
+        if task_name in {"easy", "medium", "hard"}:
+            return task_name  # type: ignore[return-value]
+        return None
