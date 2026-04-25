@@ -130,21 +130,33 @@ The included heuristic baseline is intentionally simple but completes all three 
 
 ## Training
 
-The Colab-oriented training skeleton is in:
+The Colab-oriented training scripts are:
 
 ```text
+scripts/train_sft_colab.py
 scripts/train_grpo_colab.py
 ```
 
-It uses:
+Default training choices now target a real overnight run instead of a toy smoke test:
 
-- OpenEnv-compatible environment loop
-- TRL `GRPOTrainer`
-- Unsloth 4-bit loading and LoRA
-- Qwen2.5-0.5B-Instruct by default for Colab-friendly GRPO iteration
-- verifier-style reward from the actual Construx-RL environment
+- `Qwen/Qwen2.5-1.5B-Instruct` by default
+- SFT at 320 steps
+- GRPO at 120 steps
+- LoRA fine-tuning via PEFT
+- GRPO reward shaped by projected environment score, not JSON validity alone
 
-For the hackathon Colab, install the package from the Hugging Face Space repo, then run the script cells after adding your HF/W&B credentials. If you want to evaluate against a larger hosted model, override `MODEL_NAME` in `inference.py` via environment variable.
+Recommended order:
+
+```bash
+PYTHONPATH=. python scripts/train_sft_colab.py
+PYTHONPATH=. python scripts/train_grpo_colab.py
+```
+
+If you have more credits tomorrow, override `MODEL_NAME=Qwen/Qwen2.5-7B-Instruct` in Colab and rerun the same scripts. The full-rollout evaluation script is:
+
+```text
+scripts/evaluate_full_rollout.py
+```
 
 ## Deployment
 
