@@ -14,16 +14,16 @@ from __future__ import annotations
 import json
 from typing import List
 
+from unsloth import FastLanguageModel
 from datasets import Dataset
 from trl import GRPOConfig, GRPOTrainer
-from unsloth import FastLanguageModel
 
 from construction_safety_env.env import ConstructionSafetyEnv
 from construction_safety_env.models import ConstruxAction
 
 
-MODEL_NAME = "Qwen/Qwen2.5-7B-Instruct"
-MAX_SEQ_LENGTH = 4096
+MODEL_NAME = "Qwen/Qwen2.5-0.5B-Instruct"
+MAX_SEQ_LENGTH = 2048
 
 
 def observation_prompt(observation) -> str:
@@ -101,14 +101,16 @@ def main() -> None:
 
     args = GRPOConfig(
         output_dir="construx-rl-grpo",
-        per_device_train_batch_size=2,
+        per_device_train_batch_size=1,
         gradient_accumulation_steps=4,
-        num_generations=4,
-        max_prompt_length=2048,
-        max_completion_length=512,
+        num_generations=2,
+        max_prompt_length=1536,
+        max_completion_length=384,
         learning_rate=5e-6,
         logging_steps=5,
-        num_train_epochs=1,
+        max_steps=20,
+        bf16=False,
+        fp16=True,
     )
     trainer = GRPOTrainer(
         model=model,

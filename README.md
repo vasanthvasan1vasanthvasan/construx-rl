@@ -121,7 +121,7 @@ curl http://127.0.0.1:7860/schema
 `inference.py` prints the required format:
 
 ```text
-[START] env=construx_rl difficulty=hard model=Qwen/Qwen2.5-7B-Instruct
+[START] env=construx_rl difficulty=hard model=Qwen/Qwen2.5-0.5B-Instruct
 [STEP] step=1 day=1 action=request_permit(permit_type='building') reward=0.000 done=false error=null
 [END] success=true steps=55 score=0.755 rewards=...
 ```
@@ -141,10 +141,10 @@ It uses:
 - OpenEnv-compatible environment loop
 - TRL `GRPOTrainer`
 - Unsloth 4-bit loading and LoRA
-- Qwen2.5-7B-Instruct
+- Qwen2.5-0.5B-Instruct by default for Colab-friendly GRPO iteration
 - verifier-style reward from the actual Construx-RL environment
 
-For the hackathon Colab, install the package from the Hugging Face Space repo, then run the script cells after adding your HF/W&B credentials.
+For the hackathon Colab, install the package from the Hugging Face Space repo, then run the script cells after adding your HF/W&B credentials. If you want to evaluate against a larger hosted model, override `MODEL_NAME` in `inference.py` via environment variable.
 
 ## Deployment
 

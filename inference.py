@@ -13,7 +13,7 @@ from construction_safety_env.models import ConstruxAction, Difficulty
 
 
 API_BASE_URL = os.getenv("API_BASE_URL", "local")
-MODEL_NAME = os.getenv("MODEL_NAME", "Qwen/Qwen2.5-7B-Instruct")
+MODEL_NAME = os.getenv("MODEL_NAME", "Qwen/Qwen2.5-0.5B-Instruct")
 HF_TOKEN = os.getenv("HF_TOKEN")
 BENCHMARK = "construx_rl"
 MAX_TOKENS = 500
