@@ -1,3 +1,6 @@
+git add construction_safety_env/action_choices.py
+git add scripts/train_sft_choice_colab.py
+git add scripts/evaluate_choice_rollout.py
 ---
 title: Construx-RL
 sdk: docker
