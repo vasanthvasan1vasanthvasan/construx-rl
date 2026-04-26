@@ -8,6 +8,9 @@ const els = {
   difficulty: document.querySelector("#difficulty"),
   resetBtn: document.querySelector("#resetBtn"),
   autoBtn: document.querySelector("#autoBtn"),
+  commandInput: document.querySelector("#commandInput"),
+  commandBtn: document.querySelector("#commandBtn"),
+  commandHint: document.querySelector("#commandHint"),
   dayStat: document.querySelector("#dayStat"),
   budgetStat: document.querySelector("#budgetStat"),
   scoreStat: document.querySelector("#scoreStat"),
@@ -184,6 +187,97 @@ function heuristicAction(obs) {
   return { action_type: "check_inventory" };
 }
 
+function parseTypedCommand(text, obs) {
+  const raw = text.trim();
+  if (!raw) {
+    throw new Error("Type a command first.");
+  }
+
+  if (raw.startsWith("{")) {
+    return JSON.parse(raw);
+  }
+
+  const lower = raw.toLowerCase();
+  const tokens = lower.split(/[\s,]+/).filter(Boolean);
+
+  if (lower.includes("weather")) {
+    return { action_type: "check_weather" };
+  }
+  if (lower.includes("inventory") || lower.includes("materials")) {
+    return { action_type: "check_inventory" };
+  }
+
+  if (lower.includes("permit")) {
+    const permitType = Object.keys(obs.permits).find((name) => lower.includes(name)) || Object.keys(obs.permits)[0] || "building";
+    if (lower.includes("status") || lower.includes("check")) {
+      return { action_type: "check_permit_status", permit_type: permitType };
+    }
+    return { action_type: "request_permit", permit_type: permitType };
+  }
+
+  if (lower.includes("inspect") || lower.includes("inspection")) {
+    const zone = tokens.find((token) => token.startsWith("zone_"))
+      || Object.values(obs.tasks).find((task) => lower.includes(task.zone))?.zone
+      || Object.values(obs.tasks).find((task) => task.status === "available" && task.zone !== "site" && task.zone !== "office")?.zone;
+    if (!zone) throw new Error("Include a zone, for example: inspect zone_a.");
+    return { action_type: "request_inspection", zone };
+  }
+
+  if (lower.includes("order")) {
+    const materials = ["concrete", "steel", "lumber", "roofing", "wire", "pipe", "insulation", "drywall", "paint"];
+    const material = materials.find((item) => lower.includes(item));
+    const quantity = Number(tokens.find((token) => /^\d+$/.test(token))) || 1;
+    if (!material) throw new Error("Include a material, for example: order 10 concrete.");
+    return { action_type: "order_material", material, quantity, quality: "standard" };
+  }
+
+  if (lower.includes("assign")) {
+    const crew = Object.values(obs.crews).find((item) => lower.includes(item.crew_id) || lower.includes(item.crew_type));
+    const task = Object.values(obs.tasks).find((item) => lower.includes(item.task_id));
+    if (!crew || !task) {
+      throw new Error("Use: assign structural to site_survey.");
+    }
+    return { action_type: "assign_crew", crew_id: crew.crew_id, task_id: task.task_id };
+  }
+
+  if (lower.includes("hold") || lower.includes("wait")) {
+    const crew = Object.values(obs.crews).find((item) => lower.includes(item.crew_id) || lower.includes(item.crew_type))
+      || Object.values(obs.crews)[0];
+    if (!crew) throw new Error("No crew available to hold.");
+    return {
+      action_type: "hold_crew",
+      crew_id: crew.crew_id,
+      reason: raw,
+    };
+  }
+
+  if (lower.includes("quote")) {
+    const task = Object.values(obs.tasks).find((item) => lower.includes(item.task_id) || item.required_crew === "subcontractor");
+    if (!task) throw new Error("No subcontractor task is ready for a quote.");
+    return {
+      action_type: "request_quote",
+      subcontractor_id: task.task_id === "welding_stair_rails" ? "weldco" : "rapid_roof",
+      task_id: task.task_id,
+    };
+  }
+
+  throw new Error("I could not map that command. Try request permit, order material, inspect zone, assign crew, hold crew, weather, or JSON.");
+}
+
+async function applyTypedCommand() {
+  try {
+    if (!state.observation) {
+      await resetEpisode();
+    }
+    const action = parseTypedCommand(els.commandInput.value, state.observation);
+    els.commandHint.textContent = `Applying ${action.action_type}...`;
+    const result = await step(action);
+    els.commandHint.textContent = result.info?.error ? result.info.error : `Applied ${action.action_type}`;
+  } catch (error) {
+    els.commandHint.textContent = error.message;
+  }
+}
+
 async function runDemoPolicy() {
   if (state.running) return;
   state.running = true;
@@ -268,6 +362,16 @@ els.autoBtn.addEventListener("click", () => {
     els.statusStat.textContent = "Error";
     console.error(error);
   });
+});
+
+els.commandBtn.addEventListener("click", () => {
+  applyTypedCommand();
+});
+
+els.commandInput.addEventListener("keydown", (event) => {
+  if ((event.ctrlKey || event.metaKey) && event.key === "Enter") {
+    applyTypedCommand();
+  }
 });
 
 resetEpisode().catch((error) => {

@@ -114,6 +114,12 @@
             </select>
             <button id="resetBtn" type="button">Reset Episode</button>
             <button id="autoBtn" type="button">Run Demo Policy</button>
+            <div class="command-box">
+              <label for="commandInput">Type a site manager command</label>
+              <textarea id="commandInput" rows="5" placeholder="Examples: request building permit&#10;order 10 concrete&#10;inspect zone_a&#10;assign structural to site_survey"></textarea>
+              <button id="commandBtn" type="button">Apply Command</button>
+              <p id="commandHint">Accepts short commands or a JSON action object.</p>
+            </div>
             <a class="text-link" href="/docs">Open interactive API docs</a>
           </aside>
 
@@ -183,12 +189,12 @@
             <img src="/artifacts/reward_comparison.svg" alt="Construx-RL reward comparison chart" />
           </div>
           <div class="result-copy">
-            <h3>What judges should notice</h3>
+            <h3>Training story</h3>
             <ul>
-              <li>The world is not a toy grid: delays, permits, weather, crews, safety, and budget interact.</li>
-              <li>The reward is compositional and inspectable, not a single opaque score.</li>
-              <li>The environment is solvable by a careful policy, giving RL a reachable target.</li>
-              <li>The constrained-choice policy prevents malformed actions from dominating training.</li>
+              <li>Free-form JSON actions exposed the core RL failure mode: malformed generations can collapse reward variance.</li>
+              <li>Construx-RL now supports a constrained-choice policy surface that maps model selections into valid environment actions.</li>
+              <li>The environment remains fully inspectable: every reward comes from visible project state, safety, budget, and schedule checks.</li>
+              <li>New training graphs can be dropped into <code>demo_artifacts</code> and surfaced here for the final demo.</li>
             </ul>
           </div>
         </div>

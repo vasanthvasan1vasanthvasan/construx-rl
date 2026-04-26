@@ -74,10 +74,12 @@ a {
 
 .nav a {
   text-decoration: none;
+  transition: color 180ms ease, transform 180ms ease;
 }
 
 .nav a:hover {
   color: var(--ink);
+  transform: translateY(-1px);
 }
 
 .hero {
@@ -148,6 +150,7 @@ button {
   font-weight: 750;
   text-decoration: none;
   cursor: pointer;
+  transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease, background 180ms ease;
 }
 
 .primary-link,
@@ -161,6 +164,19 @@ button {
   color: var(--steel);
   border-color: #b9c6ce;
   background: rgba(255, 255, 255, 0.72);
+}
+
+.primary-link:hover,
+.secondary-link:hover,
+button:hover {
+  transform: translateY(-3px) scale(1.015);
+  box-shadow: 0 18px 34px rgba(29, 124, 115, 0.28);
+}
+
+.primary-link:active,
+.secondary-link:active,
+button:active {
+  transform: translateY(0) scale(0.99);
 }
 
 .site-visual {
@@ -329,6 +345,24 @@ button {
   background: var(--panel);
   border: 1px solid var(--line);
   border-radius: 8px;
+  transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
+}
+
+.feature-grid article:hover,
+.mini-panel:hover,
+.progress-panel:hover,
+.log-panel:hover,
+.chart-frame:hover,
+.result-copy:hover,
+.stat-row div:hover,
+.control-panel:hover,
+.task-pill:hover,
+.weather-item:hover,
+.permit-item:hover,
+.reward-grid div:hover {
+  transform: translateY(-5px);
+  border-color: rgba(29, 124, 115, 0.36);
+  box-shadow: 0 18px 42px rgba(24, 33, 42, 0.13);
 }
 
 .feature-grid article {
@@ -369,6 +403,7 @@ button {
   background: #fff;
   border: 1px solid var(--line);
   border-radius: 8px;
+  transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
 }
 
 label {
@@ -385,6 +420,43 @@ select {
   background: #f8faf8;
   border: 1px solid #bdc9d1;
   border-radius: 6px;
+}
+
+textarea {
+  width: 100%;
+  resize: vertical;
+  min-height: 118px;
+  padding: 12px;
+  color: var(--ink);
+  background: #f8faf8;
+  border: 1px solid #bdc9d1;
+  border-radius: 6px;
+  font: inherit;
+  line-height: 1.4;
+  transition: border-color 180ms ease, box-shadow 180ms ease, transform 180ms ease;
+}
+
+select:focus,
+textarea:focus {
+  outline: none;
+  border-color: var(--teal);
+  box-shadow: 0 0 0 4px rgba(29, 124, 115, 0.12);
+}
+
+.command-box {
+  display: grid;
+  gap: 10px;
+  margin-top: 6px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+}
+
+#commandHint {
+  min-height: 38px;
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.35;
 }
 
 .text-link {
@@ -411,6 +483,7 @@ select {
   background: #fff;
   border: 1px solid var(--line);
   border-radius: 8px;
+  transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
 }
 
 .stat-row span {
@@ -468,6 +541,7 @@ select {
   border: 1px solid #e0e7eb;
   border-radius: 6px;
   font-size: 13px;
+  transition: transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease, background 160ms ease;
 }
 
 .task-pill.done {
@@ -500,6 +574,8 @@ select {
   padding: 10px;
   background: #f7f9f7;
   border-radius: 6px;
+  border: 1px solid transparent;
+  transition: transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease;
 }
 
 .log-panel ol {
@@ -528,6 +604,11 @@ select {
   color: #fff;
   background: var(--steel);
   border-radius: 8px;
+  transition: transform 180ms ease, box-shadow 180ms ease, filter 180ms ease;
+}
+
+.reward-grid div:hover {
+  filter: saturate(1.08);
 }
 
 .reward-grid div:nth-child(2) {
@@ -579,6 +660,12 @@ select {
   padding-left: 18px;
   color: #465563;
   line-height: 1.55;
+}
+
+.result-copy code {
+  padding: 2px 6px;
+  background: #eef3f0;
+  border-radius: 5px;
 }
 
 .footer {
