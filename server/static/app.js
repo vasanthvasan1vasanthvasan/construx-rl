@@ -11,6 +11,8 @@ const els = {
   commandInput: document.querySelector("#commandInput"),
   commandBtn: document.querySelector("#commandBtn"),
   commandHint: document.querySelector("#commandHint"),
+  tabButtons: document.querySelectorAll(".tab-button"),
+  tabPanels: document.querySelectorAll(".tab-panel"),
   dayStat: document.querySelector("#dayStat"),
   budgetStat: document.querySelector("#budgetStat"),
   scoreStat: document.querySelector("#scoreStat"),
@@ -22,6 +24,18 @@ const els = {
   permitList: document.querySelector("#permitList"),
   siteLog: document.querySelector("#siteLog"),
 };
+
+function activateTab(tabId) {
+  els.tabButtons.forEach((button) => {
+    button.classList.toggle("active", button.dataset.tab === tabId);
+  });
+  els.tabPanels.forEach((panel) => {
+    panel.classList.toggle("active", panel.id === tabId);
+  });
+  if (window.location.hash !== `#${tabId}`) {
+    history.replaceState(null, "", `#${tabId}`);
+  }
+}
 
 function money(value) {
   return `$${Number(value || 0).toLocaleString()}`;
@@ -373,6 +387,17 @@ els.commandInput.addEventListener("keydown", (event) => {
     applyTypedCommand();
   }
 });
+
+els.tabButtons.forEach((button) => {
+  button.addEventListener("click", () => {
+    activateTab(button.dataset.tab);
+  });
+});
+
+const initialTab = window.location.hash?.replace("#", "");
+if (initialTab && document.getElementById(initialTab)?.classList.contains("tab-panel")) {
+  activateTab(initialTab);
+}
 
 resetEpisode().catch((error) => {
   els.statusStat.textContent = "Error";

@@ -73,131 +73,156 @@
         </div>
       </section>
 
-      <section class="section" id="environment">
-        <div class="section-heading">
-          <p class="eyebrow">What is inside</p>
-          <h2>A world model with real consequences</h2>
-        </div>
-        <div class="feature-grid">
-          <article>
-            <h3>Long-Horizon Planning</h3>
-            <p>Projects unfold over dependencies, cure times, permit delays, material ETAs, inspections, and deadline pressure.</p>
-          </article>
-          <article>
-            <h3>Multi-Agent Coordination</h3>
-            <p>Structural, MEP, finishing, admin, and subcontractor agents each carry different costs, constraints, and behaviors.</p>
-          </article>
-          <article>
-            <h3>Professional Safety Rules</h3>
-            <p>OSHA-style checks penalize unsafe crane work, fall protection failures, excavation hazards, welding risks, and missing reports.</p>
-          </article>
-          <article>
-            <h3>Trainable Feedback</h3>
-            <p>Dense progress rewards, budget efficiency, schedule bonuses, safety penalties, invalid-action penalties, and anti-hack checks.</p>
-          </article>
-        </div>
-      </section>
-
-      <section class="section live-section" id="live">
-        <div class="section-heading compact">
-          <p class="eyebrow">Live environment</p>
-          <h2>Step through an episode</h2>
+      <section class="workspace" aria-label="Construx-RL workspace">
+        <div class="tabbar" role="tablist" aria-label="Demo sections">
+          <button class="tab-button active" type="button" data-tab="live">Live Demo</button>
+          <button class="tab-button" type="button" data-tab="environment">Environment</button>
+          <button class="tab-button" type="button" data-tab="rewards">Rewards</button>
+          <button class="tab-button" type="button" data-tab="results">Results</button>
+          <button class="tab-button" type="button" data-tab="api">API</button>
         </div>
 
-        <div class="demo-shell">
-          <aside class="control-panel">
-            <label for="difficulty">Scenario</label>
-            <select id="difficulty">
-              <option value="easy">Easy</option>
-              <option value="medium">Medium</option>
-              <option value="hard" selected>Hard</option>
-            </select>
-            <button id="resetBtn" type="button">Reset Episode</button>
-            <button id="autoBtn" type="button">Run Demo Policy</button>
-            <div class="command-box">
-              <label for="commandInput">Type a site manager command</label>
-              <textarea id="commandInput" rows="5" placeholder="Examples: request building permit&#10;order 10 concrete&#10;inspect zone_a&#10;assign structural to site_survey"></textarea>
-              <button id="commandBtn" type="button">Apply Command</button>
-              <p id="commandHint">Accepts short commands or a JSON action object.</p>
-            </div>
-            <a class="text-link" href="/docs">Open interactive API docs</a>
-          </aside>
+        <section class="tab-panel active" id="live">
+          <div class="section-heading compact">
+            <p class="eyebrow">Live environment</p>
+            <h2>Step through an episode</h2>
+            <p>Reset a scenario, run the demo policy, or type your own site-manager command.</p>
+          </div>
 
-          <div class="dashboard">
-            <div class="stat-row">
-              <div><span>Day</span><strong id="dayStat">-</strong></div>
-              <div><span>Budget</span><strong id="budgetStat">-</strong></div>
-              <div><span>Score</span><strong id="scoreStat">-</strong></div>
-              <div><span>Status</span><strong id="statusStat">Ready</strong></div>
-            </div>
+          <div class="demo-shell">
+            <aside class="control-panel">
+              <label for="difficulty">Scenario</label>
+              <select id="difficulty">
+                <option value="easy">Easy</option>
+                <option value="medium">Medium</option>
+                <option value="hard" selected>Hard</option>
+              </select>
+              <button id="resetBtn" type="button">Reset Episode</button>
+              <button id="autoBtn" type="button">Run Demo Policy</button>
+              <div class="command-box">
+                <label for="commandInput">Type a site manager command</label>
+                <textarea id="commandInput" rows="5" placeholder="Examples: request building permit&#10;order 10 concrete&#10;inspect zone_a&#10;assign structural to site_survey"></textarea>
+                <button id="commandBtn" type="button">Apply Command</button>
+                <p id="commandHint">Accepts short commands or a JSON action object.</p>
+              </div>
+              <a class="text-link" href="/docs">Open interactive API docs</a>
+            </aside>
 
-            <div class="progress-panel">
-              <div class="panel-title">
-                <h3>Task Progress</h3>
-                <span id="taskCount">0/0</span>
+            <div class="dashboard">
+              <div class="stat-row">
+                <div><span>Day</span><strong id="dayStat">-</strong></div>
+                <div><span>Budget</span><strong id="budgetStat">-</strong></div>
+                <div><span>Score</span><strong id="scoreStat">-</strong></div>
+                <div><span>Status</span><strong id="statusStat">Ready</strong></div>
               </div>
-              <div class="progress-track">
-                <div id="progressFill"></div>
-              </div>
-              <div id="taskList" class="task-list"></div>
-            </div>
 
-            <div class="two-column">
-              <div class="mini-panel">
-                <h3>Weather</h3>
-                <div id="weatherList" class="weather-list"></div>
+              <div class="progress-panel">
+                <div class="panel-title">
+                  <h3>Task Progress</h3>
+                  <span id="taskCount">0/0</span>
+                </div>
+                <div class="progress-track">
+                  <div id="progressFill"></div>
+                </div>
+                <div id="taskList" class="task-list"></div>
               </div>
-              <div class="mini-panel">
-                <h3>Permits</h3>
-                <div id="permitList" class="permit-list"></div>
-              </div>
-            </div>
 
-            <div class="log-panel">
-              <h3>Site Log</h3>
-              <ol id="siteLog"></ol>
+              <div class="two-column">
+                <div class="mini-panel">
+                  <h3>Weather</h3>
+                  <div id="weatherList" class="weather-list"></div>
+                </div>
+                <div class="mini-panel">
+                  <h3>Permits</h3>
+                  <div id="permitList" class="permit-list"></div>
+                </div>
+              </div>
+
+              <div class="log-panel">
+                <h3>Site Log</h3>
+                <ol id="siteLog"></ol>
+              </div>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      <section class="section reward-section" id="rewards">
-        <div class="section-heading">
-          <p class="eyebrow">Reward design</p>
-          <h2>Multiple checks make shortcuts expensive</h2>
-        </div>
-        <div class="reward-grid">
-          <div><strong>Progress</strong><span>Dependency-valid task completion.</span></div>
-          <div><strong>Budget</strong><span>Completion with remaining capital.</span></div>
-          <div><strong>Safety</strong><span>OSHA violations and incident reports.</span></div>
-          <div><strong>Schedule</strong><span>Bonus for finishing before deadline.</span></div>
-          <div><strong>Anti-Hack</strong><span>Invalid actions, timeouts, and budget failure.</span></div>
-        </div>
-      </section>
+        <section class="tab-panel" id="environment">
+          <div class="section-heading">
+            <p class="eyebrow">What is inside</p>
+            <h2>A world model with real consequences</h2>
+          </div>
+          <div class="feature-grid">
+            <article>
+              <h3>Long-Horizon Planning</h3>
+              <p>Projects unfold over dependencies, cure times, permit delays, material ETAs, inspections, and deadline pressure.</p>
+            </article>
+            <article>
+              <h3>Multi-Agent Coordination</h3>
+              <p>Structural, MEP, finishing, admin, and subcontractor agents each carry different costs, constraints, and behaviors.</p>
+            </article>
+            <article>
+              <h3>Professional Safety Rules</h3>
+              <p>OSHA-style checks penalize unsafe crane work, fall protection failures, excavation hazards, welding risks, and missing reports.</p>
+            </article>
+            <article>
+              <h3>Trainable Feedback</h3>
+              <p>Dense progress rewards, budget efficiency, schedule bonuses, safety penalties, invalid-action penalties, and anti-hack checks.</p>
+            </article>
+          </div>
+        </section>
 
-      <section class="section results-section" id="results">
-        <div class="section-heading">
-          <p class="eyebrow">Evidence</p>
-          <h2>Baseline, trained policy surface, and solvable oracle</h2>
-          <p>
-            The included artifact shows random actions versus the deterministic demo policy.
-            Constrained-choice training artifacts can be dropped into the same folder and linked here.
-          </p>
-        </div>
-        <div class="results-layout">
-          <div class="chart-frame">
-            <img src="/artifacts/reward_comparison.svg" alt="Construx-RL reward comparison chart" />
+        <section class="tab-panel" id="rewards">
+          <div class="section-heading">
+            <p class="eyebrow">Reward design</p>
+            <h2>Multiple checks make shortcuts expensive</h2>
           </div>
-          <div class="result-copy">
-            <h3>Training story</h3>
-            <ul>
-              <li>Free-form JSON actions exposed the core RL failure mode: malformed generations can collapse reward variance.</li>
-              <li>Construx-RL now supports a constrained-choice policy surface that maps model selections into valid environment actions.</li>
-              <li>The environment remains fully inspectable: every reward comes from visible project state, safety, budget, and schedule checks.</li>
-              <li>New training graphs can be dropped into <code>demo_artifacts</code> and surfaced here for the final demo.</li>
-            </ul>
+          <div class="reward-grid">
+            <div><strong>Progress</strong><span>Dependency-valid task completion.</span></div>
+            <div><strong>Budget</strong><span>Completion with remaining capital.</span></div>
+            <div><strong>Safety</strong><span>OSHA violations and incident reports.</span></div>
+            <div><strong>Schedule</strong><span>Bonus for finishing before deadline.</span></div>
+            <div><strong>Anti-Hack</strong><span>Invalid actions, timeouts, and budget failure.</span></div>
           </div>
-        </div>
+        </section>
+
+        <section class="tab-panel" id="results">
+          <div class="section-heading">
+            <p class="eyebrow">Evidence</p>
+            <h2>Baseline, trained policy surface, and solvable oracle</h2>
+            <p>
+              The included artifact shows random actions versus the deterministic demo policy.
+              Constrained-choice training artifacts can be dropped into the same folder and linked here.
+            </p>
+          </div>
+          <div class="results-layout">
+            <div class="chart-frame">
+              <img src="/artifacts/reward_comparison.svg" alt="Construx-RL reward comparison chart" />
+            </div>
+            <div class="result-copy">
+              <h3>Training story</h3>
+              <ul>
+                <li>Free-form JSON actions exposed the core RL failure mode: malformed generations can collapse reward variance.</li>
+                <li>Construx-RL now supports a constrained-choice policy surface that maps model selections into valid environment actions.</li>
+                <li>The environment remains fully inspectable: every reward comes from visible project state, safety, budget, and schedule checks.</li>
+                <li>New training graphs can be dropped into <code>demo_artifacts</code> and surfaced here for the final demo.</li>
+              </ul>
+            </div>
+          </div>
+        </section>
+
+        <section class="tab-panel" id="api">
+          <div class="section-heading">
+            <p class="eyebrow">Developer surface</p>
+            <h2>OpenEnv-compatible API</h2>
+            <p>Use the server endpoints directly from training scripts, Colab, or the interactive docs.</p>
+          </div>
+          <div class="api-grid">
+            <a href="/docs">Interactive Docs</a>
+            <a href="/schema">Schema</a>
+            <a href="/tasks">Tasks</a>
+            <a href="/health">Health</a>
+          </div>
+        </section>
       </section>
     </main>
 
