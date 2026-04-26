@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import csv
 import json
+import os
 import random
 import sys
 from pathlib import Path
@@ -20,9 +21,8 @@ from construction_safety_env.models import ConstruxAction
 from inference import _heuristic_action
 
 
-BASE_MODEL = "Qwen/Qwen2.5-1.5B-Instruct"
+BASE_MODEL = os.getenv("MODEL_NAME", "Qwen/Qwen2.5-1.5B-Instruct")
 OUT_DIR = Path("demo_artifacts")
-DIFFICULTIES = ("easy", "medium", "hard")
 POLICY_ORDER = ("random", "heuristic", "sft_choice")
 COLORS = {
     "random": "#b44d68",
@@ -139,7 +139,7 @@ def summarize(rows: Iterable[Dict[str, Any]]) -> Dict[str, Dict[str, float]]:
     summary: Dict[str, Dict[str, float]] = {}
     for policy in POLICY_ORDER:
         summary[policy] = {}
-        for difficulty in DIFFICULTIES:
+        for difficulty in sorted({row["difficulty"] for row in rows}):
             values = [row["score"] for row in rows if row["policy"] == policy and row["difficulty"] == difficulty]
             summary[policy][difficulty] = round(sum(values) / len(values), 4)
     return summary
@@ -150,7 +150,7 @@ def summarize_diagnostics(rows: Iterable[Dict[str, Any]]) -> Dict[str, Dict[str,
     diagnostics: Dict[str, Dict[str, Dict[str, float]]] = {}
     for policy in POLICY_ORDER:
         diagnostics[policy] = {}
-        for difficulty in DIFFICULTIES:
+        for difficulty in sorted({row["difficulty"] for row in rows}):
             matching = [row for row in rows if row["policy"] == policy and row["difficulty"] == difficulty]
             count = max(1, len(matching))
             diagnostics[policy][difficulty] = {
@@ -162,7 +162,7 @@ def summarize_diagnostics(rows: Iterable[Dict[str, Any]]) -> Dict[str, Dict[str,
     return diagnostics
 
 
-def write_svg(summary: Dict[str, Dict[str, float]], path: Path) -> None:
+def write_svg(summary: Dict[str, Dict[str, float]], path: Path, difficulties: List[str]) -> None:
     width = 1120
     height = 680
     left = 104
@@ -174,12 +174,12 @@ def write_svg(summary: Dict[str, Dict[str, float]], path: Path) -> None:
     bar_width = 64
     inner_gap = 18
     group_width = len(POLICY_ORDER) * bar_width + (len(POLICY_ORDER) - 1) * inner_gap
-    group_gap = (plot_width - len(DIFFICULTIES) * group_width) / (len(DIFFICULTIES) + 1)
+    group_gap = (plot_width - len(difficulties) * group_width) / (len(difficulties) + 1)
 
     x = left + group_gap
     bars = []
     labels = []
-    for difficulty in DIFFICULTIES:
+    for difficulty in difficulties:
         group_start = x
         for policy in POLICY_ORDER:
             value = summary[policy][difficulty]
@@ -226,16 +226,18 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--seed-count", type=int, default=2)
     parser.add_argument("--max-steps", type=int, default=24)
     parser.add_argument("--output-prefix", default="choice_rollout")
+    parser.add_argument("--difficulties", default="easy,medium,hard")
     return parser.parse_args()
 
 
 def main() -> None:
     args = parse_args()
     OUT_DIR.mkdir(exist_ok=True)
+    difficulties = [item.strip() for item in args.difficulties.split(",") if item.strip()]
 
     model, tokenizer = load_adapter(Path(args.sft_path))
     rows: List[Dict[str, Any]] = []
-    for difficulty in DIFFICULTIES:
+    for difficulty in difficulties:
         for seed in range(args.seed_count):
             rows.append(rollout("random", difficulty, seed, args.max_steps))
             rows.append(rollout("heuristic", difficulty, seed, args.max_steps))
@@ -253,7 +255,7 @@ def main() -> None:
         writer.writerows(rows)
 
     json_path.write_text(json.dumps({"average_scores": summary, "diagnostics": diagnostics}, indent=2), encoding="utf-8")
-    write_svg(summary, svg_path)
+    write_svg(summary, svg_path, difficulties)
     print(f"wrote {csv_path}")
     print(f"wrote {json_path}")
     print(f"wrote {svg_path}")

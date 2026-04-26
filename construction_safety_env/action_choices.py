@@ -19,6 +19,13 @@ def _action_signature(action: ConstruxAction) -> tuple:
     return (action_type, tuple(sorted(payload.items())))
 
 
+def format_action_payload(action: ConstruxAction) -> str:
+    payload = action.model_dump(exclude_none=True)
+    action_type = payload.pop("action_type")
+    args = ", ".join(f"{key}={value!r}" for key, value in payload.items())
+    return f"{action_type}({args})" if args else f"{action_type}()"
+
+
 def _add_choice(choices: List[ActionChoice], seen: set, action: ConstruxAction, label: str) -> None:
     signature = _action_signature(action)
     if signature in seen:
@@ -151,7 +158,10 @@ def build_action_choices(observation, max_choices: int = 16) -> List[ActionChoic
 
 
 def format_action_choices(choices: List[ActionChoice]) -> str:
-    return "\n".join(f"{choice.choice_id}. {choice.label}" for choice in choices)
+    return "\n".join(
+        f"{choice.choice_id}. {format_action_payload(choice.action)} -- {choice.label}"
+        for choice in choices
+    )
 
 
 def select_choice_for_action(choices: List[ActionChoice], action: ConstruxAction) -> ActionChoice:

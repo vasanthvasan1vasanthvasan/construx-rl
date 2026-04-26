@@ -20,6 +20,7 @@ OUTPUT_DIR = os.getenv("SFT_CHOICE_OUTPUT_DIR", "construx-rl-sft-choice")
 MAX_STEPS = int(os.getenv("SFT_CHOICE_MAX_STEPS", "360"))
 SEEDS_PER_DIFFICULTY = int(os.getenv("SFT_CHOICE_SEEDS_PER_DIFFICULTY", "8"))
 MAX_SEQ_LENGTH = int(os.getenv("SFT_CHOICE_MAX_LENGTH", "1024"))
+DIFFICULTIES = tuple(item.strip() for item in os.getenv("SFT_CHOICE_DIFFICULTIES", "easy,medium,hard").split(",") if item.strip())
 
 
 def choice_prompt(observation) -> str:
@@ -36,6 +37,11 @@ def choice_prompt(observation) -> str:
         "You are the Construx-RL site manager.\n"
         "Choose exactly one numbered action from the candidate list.\n"
         "Return ONLY the number.\n\n"
+        "Priority rules:\n"
+        "- If a permit is not requested, request it.\n"
+        "- If an OSHA alert exists, file the report.\n"
+        "- If required materials are missing, order them before assigning work.\n"
+        "- Prefer progressing already assigned crews.\n\n"
         f"Day {observation.day}/{observation.max_days}; budget={observation.remaining_budget}\n"
         f"Weather: {weather}\n"
         f"Permits: {[f'{k}:{v.status}' for k, v in observation.permits.items()]}\n"
@@ -49,7 +55,7 @@ def make_dataset(eos_token: str) -> Dataset:
     rows = []
     env = ConstructionSafetyEnv()
 
-    for difficulty in ("easy", "medium", "hard"):
+    for difficulty in DIFFICULTIES:
         for seed in range(SEEDS_PER_DIFFICULTY):
             observation = env.reset(difficulty=difficulty, seed=seed)
             while not observation.done:
@@ -117,6 +123,7 @@ def main() -> None:
     model.print_trainable_parameters()
 
     dataset = make_dataset(tokenizer.eos_token)
+    print(f"SFT choice difficulties: {DIFFICULTIES}")
     print(f"SFT choice dataset rows: {len(dataset)}")
     args = build_sft_args(use_bf16=use_bf16, use_fp16=use_fp16)
 
