@@ -5,6 +5,8 @@ from typing import Dict
 import uuid
 
 from fastapi import Body, FastAPI, HTTPException, Query
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 import uvicorn
 
 from construction_safety_env.env import ConstructionSafetyEnv
@@ -28,6 +30,9 @@ app = FastAPI(
     description="OpenEnv environment where an LLM acts as a construction site manager across permits, materials, crews, weather, OSHA safety, budget, and subcontractor negotiation.",
     version="0.2.0",
 )
+
+app.mount("/static", StaticFiles(directory="server/static"), name="static")
+app.mount("/artifacts", StaticFiles(directory="demo_artifacts"), name="artifacts")
 
 _sessions: Dict[str, ConstructionSafetyEnv] = {}
 _lock = Lock()
@@ -53,7 +58,12 @@ def _get_session(session_id: str) -> ConstructionSafetyEnv:
 
 
 @app.get("/")
-def root() -> dict:
+def root() -> FileResponse:
+    return FileResponse("server/static/index.html")
+
+
+@app.get("/info")
+def info() -> dict:
     return {
         "name": "construx_rl",
         "tag": "openenv",

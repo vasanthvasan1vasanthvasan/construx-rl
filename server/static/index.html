@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Construx-RL</title>
+    <link rel="stylesheet" href="/static/styles.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <a class="brand" href="#demo" aria-label="Construx-RL home">
+        <span class="brand-mark">C</span>
+        <span>Construx-RL</span>
+      </a>
+      <nav class="nav">
+        <a href="#environment">Environment</a>
+        <a href="#rewards">Rewards</a>
+        <a href="#results">Results</a>
+        <a href="/docs">API Docs</a>
+      </nav>
+    </header>
+
+    <main>
+      <section class="hero" id="demo">
+        <div class="hero-copy">
+          <p class="eyebrow">OpenEnv construction management benchmark</p>
+          <h1>Train an LLM to manage a risky construction project, not just talk about one.</h1>
+          <p class="lede">
+            The agent plans permits, material lead times, weather holds, OSHA inspections,
+            budget pressure, crews, and subcontractor negotiation across long-horizon episodes.
+          </p>
+          <div class="hero-actions">
+            <a class="primary-link" href="#live">Run Live Demo</a>
+            <a class="secondary-link" href="/schema">View Schema</a>
+          </div>
+        </div>
+        <div class="site-visual" aria-label="Construction site simulation preview">
+          <div class="skyline"></div>
+          <div class="crane">
+            <div class="mast"></div>
+            <div class="jib"></div>
+            <div class="counter"></div>
+            <div class="cable"></div>
+            <div class="hook"></div>
+          </div>
+          <div class="building">
+            <span></span><span></span><span></span><span></span>
+            <span></span><span></span><span></span><span></span>
+            <span></span><span></span><span></span><span></span>
+          </div>
+          <div class="ground">
+            <div class="lane"></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="metrics-band" aria-label="Project highlights">
+        <div>
+          <strong>15</strong>
+          <span>hard-mode tasks</span>
+        </div>
+        <div>
+          <strong>30</strong>
+          <span>simulated days</span>
+        </div>
+        <div>
+          <strong>12</strong>
+          <span>action types</span>
+        </div>
+        <div>
+          <strong>8</strong>
+          <span>OSHA checks</span>
+        </div>
+      </section>
+
+      <section class="section" id="environment">
+        <div class="section-heading">
+          <p class="eyebrow">What is inside</p>
+          <h2>A world model with real consequences</h2>
+        </div>
+        <div class="feature-grid">
+          <article>
+            <h3>Long-Horizon Planning</h3>
+            <p>Projects unfold over dependencies, cure times, permit delays, material ETAs, inspections, and deadline pressure.</p>
+          </article>
+          <article>
+            <h3>Multi-Agent Coordination</h3>
+            <p>Structural, MEP, finishing, admin, and subcontractor agents each carry different costs, constraints, and behaviors.</p>
+          </article>
+          <article>
+            <h3>Professional Safety Rules</h3>
+            <p>OSHA-style checks penalize unsafe crane work, fall protection failures, excavation hazards, welding risks, and missing reports.</p>
+          </article>
+          <article>
+            <h3>Trainable Feedback</h3>
+            <p>Dense progress rewards, budget efficiency, schedule bonuses, safety penalties, invalid-action penalties, and anti-hack checks.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="section live-section" id="live">
+        <div class="section-heading compact">
+          <p class="eyebrow">Live environment</p>
+          <h2>Step through an episode</h2>
+        </div>
+
+        <div class="demo-shell">
+          <aside class="control-panel">
+            <label for="difficulty">Scenario</label>
+            <select id="difficulty">
+              <option value="easy">Easy</option>
+              <option value="medium">Medium</option>
+              <option value="hard" selected>Hard</option>
+            </select>
+            <button id="resetBtn" type="button">Reset Episode</button>
+            <button id="autoBtn" type="button">Run Demo Policy</button>
+            <a class="text-link" href="/docs">Open interactive API docs</a>
+          </aside>
+
+          <div class="dashboard">
+            <div class="stat-row">
+              <div><span>Day</span><strong id="dayStat">-</strong></div>
+              <div><span>Budget</span><strong id="budgetStat">-</strong></div>
+              <div><span>Score</span><strong id="scoreStat">-</strong></div>
+              <div><span>Status</span><strong id="statusStat">Ready</strong></div>
+            </div>
+
+            <div class="progress-panel">
+              <div class="panel-title">
+                <h3>Task Progress</h3>
+                <span id="taskCount">0/0</span>
+              </div>
+              <div class="progress-track">
+                <div id="progressFill"></div>
+              </div>
+              <div id="taskList" class="task-list"></div>
+            </div>
+
+            <div class="two-column">
+              <div class="mini-panel">
+                <h3>Weather</h3>
+                <div id="weatherList" class="weather-list"></div>
+              </div>
+              <div class="mini-panel">
+                <h3>Permits</h3>
+                <div id="permitList" class="permit-list"></div>
+              </div>
+            </div>
+
+            <div class="log-panel">
+              <h3>Site Log</h3>
+              <ol id="siteLog"></ol>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section reward-section" id="rewards">
+        <div class="section-heading">
+          <p class="eyebrow">Reward design</p>
+          <h2>Multiple checks make shortcuts expensive</h2>
+        </div>
+        <div class="reward-grid">
+          <div><strong>Progress</strong><span>Dependency-valid task completion.</span></div>
+          <div><strong>Budget</strong><span>Completion with remaining capital.</span></div>
+          <div><strong>Safety</strong><span>OSHA violations and incident reports.</span></div>
+          <div><strong>Schedule</strong><span>Bonus for finishing before deadline.</span></div>
+          <div><strong>Anti-Hack</strong><span>Invalid actions, timeouts, and budget failure.</span></div>
+        </div>
+      </section>
+
+      <section class="section results-section" id="results">
+        <div class="section-heading">
+          <p class="eyebrow">Evidence</p>
+          <h2>Baseline, trained policy surface, and solvable oracle</h2>
+          <p>
+            The included artifact shows random actions versus the deterministic demo policy.
+            Constrained-choice training artifacts can be dropped into the same folder and linked here.
+          </p>
+        </div>
+        <div class="results-layout">
+          <div class="chart-frame">
+            <img src="/artifacts/reward_comparison.svg" alt="Construx-RL reward comparison chart" />
+          </div>
+          <div class="result-copy">
+            <h3>What judges should notice</h3>
+            <ul>
+              <li>The world is not a toy grid: delays, permits, weather, crews, safety, and budget interact.</li>
+              <li>The reward is compositional and inspectable, not a single opaque score.</li>
+              <li>The environment is solvable by a careful policy, giving RL a reachable target.</li>
+              <li>The constrained-choice policy prevents malformed actions from dominating training.</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <span>Construx-RL</span>
+      <span>OpenEnv API: /reset /step /state /schema /tasks /health</span>
+    </footer>
+
+    <script src="/static/app.js"></script>
+  </body>
+</html>
